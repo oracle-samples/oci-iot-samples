@@ -1,0 +1,34 @@
+#
+# Github workflow for pre-commit
+#
+# Copyright (c) 2025 Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at
+# https://oss.oracle.com/licenses/upl.
+#
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+#
+name: Run pre-commit on Pull Requests
+
+on:
+  pull_request:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install ShellCheck
+        shell: bash
+        env:
+          SC_VER: v0.10.0
+        run: |
+          echo "Installing ShellCheck..." >&2
+            mkdir --parents "${HOME}/.local/bin"
+            echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+            curl --silent --location \
+              "https://github.com/koalaman/shellcheck/releases/download/${SC_VER}/shellcheck-${SC_VER}.linux.x86_64.tar.xz" |
+              tar --extract --xz --directory="${HOME}/.local/bin" \
+              --strip-components=1 "shellcheck-${SC_VER}/shellcheck"
+            shellcheck --version >&2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+      - uses: pre-commit/action@v3.0.1

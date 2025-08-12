@@ -1,44 +1,81 @@
-*This repository acts as a template for all of Oracle’s GitHub repositories. It contains information about the guidelines for those repositories. All files and sections contained in this template are mandatory, and a GitHub app ensures alignment with these guidelines. To get started with a new repository, replace the italic paragraphs with the respective text for your project.*
+# Oracle Internet of Things Platform Samples
 
-# Project name
+This repository provides examples demonstrating how to use the Oracle Internet of Things
+Platform.
 
-*Describe your project's features, functionality and target audience*
+## Setup
 
-## Installation
+The examples and tutorials in this repository assume you have already provisioned an IoT
+Domain Group and an IoT Domain.
 
-*Provide detailed step-by-step installation instructions. You can name this section **How to Run** or **Getting Started** instead of **Installation** if that's more acceptable for your project*
+## Sending Messages to the OCI IoT Platform Using a GUI
+
+The samples below show you how to send messages from the command line or using programming
+languages.  
+If you want to send test messages using a GUI, you can use any MQTT-compliant client,
+such as the following (Oracle has no preference or affiliation with any of these products):
+
+- [MQTT Explorer](https://mqtt-explorer.com/)
+- [MQTTX](https://mqttx.app/)
+- ...
+
+**Note:** The OCI IoT Platform is _not_ an MQTT broker; you will not be able to listen
+for messages from your devices.
+
+Similarly, to test the REST APIs (for example, sending telemetry or querying telemetry
+via ORDS endpoints), you can use:
+
+- [Insomnia](https://insomnia.rest/)
+- [Postman](https://www.postman.com/)
+- ...
+
+## Viewing Telemetry
+
+There are several options to view telemetry:
+
+- The APEX SQL Workshop to browse the database.
+- Connect directly to the database with
+  [SQLcl](https://www.oracle.com/database/sqldeveloper/technologies/sqlcl/) or
+  [SQL Developer](https://www.oracle.com/database/sqldeveloper/) (see below).
+- Query the database using the ORDS endpoints (see below).
+
+## How To
+
+| Description                                          | Command Line          | Python       |
+|------------------------------------------------------|:---------------------:|:------------:|
+| Manage Digital Twins (Create, delete, ...)           | [Sample](./samples/script/manage-dt/) |              |
+| Publish telemetry (HTTPS - REST API)                 | [Sample](./samples/script/publish-https/) | [Sample](./samples/python/publish-https/)  |
+| Publish telemetry (MQTTS - Secure MQTT)              |                       | [Sample](./samples/python/publish-mqtt/)  |
+| Publish telemetry (WSS - Secure MQTT over WebSocket) |                       | [Sample](./samples/python/publish-websockets/)  |
+| Raw command-response scenario                        |                       | [Sample](./samples/python/command-response/)  |
+| Direct database connection — query telemetry         | [Sample](./samples/script/query-db/) | [Sample](./samples/python/query-db/)  |
 
 ## Documentation
 
-*Developer-oriented documentation can be published on GitHub, but all product documentation must be published on <https://docs.oracle.com>*
-
-## Examples
-
-*Describe any included examples or provide a link to a demo/tutorial*
-
-## Help
-
-*Inform users on where to get help or how to receive official support from Oracle (if applicable)*
+You can find the online documentation for the Oracle Internet of Things Platform at
+[docs.cloud.oracle.com](https://docs.cloud.oracle.com/).
 
 ## Contributing
 
-*If your project has specific contribution requirements, update the CONTRIBUTING.md file to ensure those requirements are clearly explained*
-
-This project welcomes contributions from the community. Before submitting a pull request, please [review our contribution guide](./CONTRIBUTING.md)
+See [CONTRIBUTING](./CONTRIBUTING.md).
 
 ## Security
 
-Please consult the [security guide](./SECURITY.md) for our responsible security vulnerability disclosure process
+Please consult the [security guide](./SECURITY.md) for our responsible security
+vulnerability disclosure process.
 
 ## License
 
-*The correct copyright notice format for both documentation and software is*
-    "Copyright (c) [year,] year Oracle and/or its affiliates."
-*You must include the year the content was first released (on any platform) and the most recent year in which it was revised*
+See [LICENSE](./LICENSE.txt).
 
-Copyright (c) 2023 Oracle and/or its affiliates.
+## Disclaimer
 
-*Replace this statement if your project is not licensed under the UPL*
-
-Released under the Universal Permissive License v1.0 as shown at
-<https://oss.oracle.com/licenses/upl/>.
+Oracle and its affiliates do not provide any warranty whatsoever, express or implied, for
+any software, material or content of any kind contained or produced within this
+repository, and in particular specifically disclaim any and all implied warranties of
+title, non-infringement, merchantability, and fitness for a particular purpose.
+Furthermore, Oracle and its affiliates do not represent that any customary security
+review has been performed with respect to any software, material or content contained or
+produced within this repository. In addition, and without limiting the foregoing,
+third parties may have posted software, material or content to this repository
+without any review. Use at your own risk.

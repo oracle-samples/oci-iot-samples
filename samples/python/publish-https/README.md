@@ -22,7 +22,7 @@ Copy `config.distr.py` to `config.py` and set the following variables:
 Run the script:
 
 ```shell
-./pub-https-vault.py
+./pub-https-basic.py
 ```
 
 ## Using Certificate-Based Authentication

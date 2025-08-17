@@ -9,7 +9,7 @@ This guide shows how to connect to your IoT database using
 ## Prerequisites
 
 <!-- markdownlint-disable MD013 -->
-- Your client IP address must be included in the Allow List defined at the IoT
+- Your client VCN must be included in the Allow List defined at the IoT
   Domain Group level – [Documentation](.).
 - Database authentication is handled by
   [OCI Identity Database Tokens](https://docs.oracle.com/en/cloud/paas/autonomous-database/serverless/adbsb/iam-access-database.html#GUID-CFC74EAF-E887-4B1F-9E9A-C956BCA0BEA9).  

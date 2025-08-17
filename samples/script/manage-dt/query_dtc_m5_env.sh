@@ -36,10 +36,10 @@ if [[ ! ${dt_id} =~ ^ocid1\.iotdigitaltwininstance\. ]]; then
 fi
 
 echo "${PGM}: Query DT ${DTC_ENV_ID}"
-oci iot digital-twin-instance get -digital-twin-instance-id "${dt_id}"
+oci iot digital-twin-instance get --digital-twin-instance-id "${dt_id}"
 
 echo "${PGM}: Query DT ${DTC_ENV_ID} content"
-oci iot digital-twin-instance get-content -digital-twin-instance-id "${dt_id}"
+oci iot digital-twin-instance get-content --digital-twin-instance-id "${dt_id}"
 
 echo "${PGM}: Recent raw data"
 if [[ $(uname -s) == "Darwin" ]]; then

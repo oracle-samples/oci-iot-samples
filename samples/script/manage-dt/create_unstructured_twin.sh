@@ -21,8 +21,8 @@ source "${PGM_DIR}/environ.sh"
 
 echo "${PGM}: Create unstructured DT ${UDT_ID}"
 oci iot digital-twin-instance create \
-  --display-name "${UTD_ID}" \
-  --description "${UTD_ID}" \
+  --display-name "${UDT_ID}" \
+  --description "${UDT_ID}" \
   --iot-domain-id "${IOT_DOMAIN_ID}" \
-  --external-key "${UTD_DEVICE_USER}" \
-  --auth-id "${UTD_DEVICE_PASSWORD_ID_ID}"
+  --external-key "${UDT_DEVICE_USER}" \
+  --auth-id "${UDT_DEVICE_PASSWORD_ID_ID}"

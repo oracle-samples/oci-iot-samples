@@ -9,7 +9,7 @@ You will need the Device Host for your IoT Domain. It can be retrieved with:
 ```shell
 iot_domain_id="<IoT Domain OCID>"
 iot_device_host=$(oci iot domain get --iot-domain-id "${iot_domain_id}" \
-  --query data.deviceHost --raw-output
+  --query 'data."device-host"' --raw-output
 )
 ```
 

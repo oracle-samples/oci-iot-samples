@@ -33,7 +33,7 @@ Obtain the database token scope and retrieve a token:
 iot_domain_group_id="<IoT Domain Group OCID>"
 iot_db_token_scope=$(
   oci iot domain-group get --iot-domain-group-id "${iot_domain_group_id}" \
-   --query data.dbTokenScope --raw-output
+   --query 'data."db-token-scope"' --raw-output
 )
 # Get token (valid for 60 minutes)
 oci iam db-token get --scope "${iot_db_token_scope}"
@@ -44,7 +44,7 @@ Obtain the JDBC connect string and connect to the database:
 ```shell
 iot_db_connect_string=$(
   oci iot domain-group get --iot-domain-group-id "${iot_domain_group_id}" \
-  --query data.dbConnectionString --raw-output
+  --query 'data."db-connection-string"' --raw-output
 )
 sql "/@jdbc:oracle:thin:@${iot_db_connect_string}&TOKEN_AUTH=OCI_TOKEN"
 ```
@@ -59,8 +59,8 @@ can be retrieved with:
 
 ```shell
 iot_domain_id="<IoT Domain OCID>"
-  oci iot domain get --iot-domain-id "${iot_domain_group_id}" |
-  jq -r '.data.deviceHost | split(".")[0]'
+oci iot domain get --iot-domain-id "${iot_domain_id}" |
+  jq -r '.data."device-host" | split(".")[0]'
 ```
 
 ## Sample SQL sessions

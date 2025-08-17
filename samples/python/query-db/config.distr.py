@@ -5,15 +5,15 @@ import os
 # Database connect string and token scope as provided by the OCI IoT Platform.
 # These are the dbConnectionString and dbTokenScope properties of your IoT Domain Group.
 # They can be retrieved with:
-#   oci iot domain-group get --iot-domain-id <IoT Domain Group OCID> \
-#     --query 'data.[dbConnectionString, dbTokenScope]
+#   oci iot domain-group get --iot-domain-group-id <IoT Domain Group OCID> \
+#     --query 'data.["db-connection-string", "db-token-scope"]'
 db_connect_string = "tcps:adb.<region>.oraclecloud.com:1521/<redacted>"
 db_token_scope = "urn:oracle:db::id::<Compartment OCID>"
 
 # Domain short name.
 # This is the hostname part of the IoT Domain device host and can be retrieved using:
 #   oci iot domain get --iot-domain-id <IoT Domain OCID> |
-#     jq -r '.data.deviceHost | split(".")[0]'
+#     jq -r '.'data."device-host"' | split(".")[0]'
 iot_domain_short_name = "<Domain SHort Name>"
 
 # OCI CLI profile to use for token retrieval.

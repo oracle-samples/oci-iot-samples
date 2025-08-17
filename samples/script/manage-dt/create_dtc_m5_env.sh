@@ -127,7 +127,7 @@ adapter_id=$(oci iot digital-twin-adapter list \
   --iot-domain-id "${IOT_DOMAIN_ID}" \
   --display-name "${DTC_ENV_ADAPTER}" \
   --lifecycle-state ACTIVE \
-  --query "data[0].id" --raw-output
+  --query "data.items[0].id" --raw-output
 )
 if [[ ! ${adapter_id} =~ ^ocid1\.iotdigitaltwinadapter\. ]]; then
   echo "${PGM}: Cannot find adapter"

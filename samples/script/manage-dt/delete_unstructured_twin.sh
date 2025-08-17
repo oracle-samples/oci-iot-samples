@@ -24,7 +24,7 @@ dt_id=$(oci iot digital-twin-instance list \
   --iot-domain-id "${IOT_DOMAIN_ID}" \
   --display-name "${UDT_ID}" \
   --lifecycle-state ACTIVE \
-  --query "data[0].id" --raw-output
+  --query "data.items[0].id" --raw-output
 )
 if [[ ! ${dt_id} =~ ^ocid1\.iotdigitaltwininstance\. ]]; then
   echo "${PGM}: Cannot find digital twin"

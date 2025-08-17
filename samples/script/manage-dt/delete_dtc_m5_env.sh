@@ -24,7 +24,7 @@ dt_id=$(oci iot digital-twin-instance list \
   --iot-domain-id "${IOT_DOMAIN_ID}" \
   --display-name "${DTC_ENV_ID}" \
   --lifecycle-state ACTIVE \
-  --query "data[0].id" --raw-output
+  --query "data.items[0].id" --raw-output
 )
 if [[ ! ${dt_id} =~ ^ocid1\.iotdigitaltwininstance\. ]]; then
   echo "${PGM}: Cannot find digital twin"
@@ -38,7 +38,7 @@ adapter_id=$(oci iot digital-twin-adapter list \
   --iot-domain-id "${IOT_DOMAIN_ID}" \
   --display-name "${DTC_ENV_ADAPTER}" \
   --lifecycle-state ACTIVE \
-  --query "data[0].id" --raw-output
+  --query "data.items[0].id" --raw-output
 )
 if [[ ! ${adapter_id} =~ ^ocid1\.iotdigitaltwinadapter\. ]]; then
   echo "${PGM}: Cannot find adapter"
@@ -52,7 +52,7 @@ model_id=$(oci iot digital-twin-model list \
   --iot-domain-id "${IOT_DOMAIN_ID}" \
   --spec-uri-starts-with "${DTC_ENV_MODEL_ID}" \
   --lifecycle-state ACTIVE \
-  --query "data[0].id" --raw-output
+  --query "data.items[0].id" --raw-output
 )
 if [[ ! ${model_id} =~ ^ocid1\.iotdigitaltwinmodel\. ]]; then
   echo "${PGM}: Cannot find model"

@@ -34,7 +34,7 @@ def current_epoch_microseconds():
 # The sample telemetry below is compatible with all three Digital Twins created
 # in the "Manage Digital Twins" section of this repository.
 telemetry_data = {
-    "time": current_epoch_microseconds(),
+    "timestamp": current_epoch_microseconds(),
     "sht_temperature": 23.8,
     "qmp_temperature": 24.4,
     "humidity": 56.1,

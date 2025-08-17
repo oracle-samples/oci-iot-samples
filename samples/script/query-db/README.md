@@ -75,7 +75,7 @@ select
     rd.time_received,
     rd.endpoint,
     utl_raw.cast_to_varchar2(dbms_lob.substr(rd.content, 40)) as content
-from raw_data rd, digital_twins dt
+from raw_data rd, digital_twin_instances dt
 where rd.digital_twin_instance_id = dt.data."_id"
   and rd.time_received > sysdate - 1/24/12
 order by rd.time_received;
@@ -90,8 +90,8 @@ select
     hd.time_observed,
     hd.content_path,
     json_serialize (hd.value returning varchar2(40) truncate error on error) as value
-from digital_twin_historized_data hd, digital_twins dt
-where hd.digital_twin_id = dt.data."_id"
+from historized_data hd, digital_twin_instances dt
+where hd.digital_twin_instance_id = dt.data."_id"
   and hd.time_observed > sysdate - 1/24/12
 order by hd.time_observed;
 ```
@@ -107,7 +107,7 @@ select
     rd.reason_code,
     rd.reason_message,
     utl_raw.cast_to_varchar2(dbms_lob.substr(rd.content, 40)) as content
-from rejected_data rd, digital_twins dt
+from rejected_data rd, digital_twin_instances dt
 where rd.digital_twin_instance_id = dt.data."_id"
   and rd.time_received > sysdate - 1/24/12
 order by rd.time_received;

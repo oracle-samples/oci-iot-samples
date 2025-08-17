@@ -58,8 +58,8 @@ curl -k -s --get \
 
 echo "${PGM}: Recent historized data"
 curl -k -s --get \
-  --location "${IOT_DATA_ENDPOINT}/digitalTwin/historizedData" \
-  --data-urlencode 'q={"$and":[{"digital_twin_id":"'"${dt_id}"'"},{"time_observed":{"$gte":{"$date":"'"${recently}"'"}}}]}' \
+  --location "${IOT_DATA_ENDPOINT}/historizedData" \
+  --data-urlencode 'q={"$and":[{"digital_twin_instance_id":"'"${dt_id}"'"},{"time_observed":{"$gte":{"$date":"'"${recently}"'"}}}]}' \
   --data-urlencode offset=0 \
   --data-urlencode limit=100 \
   --header "Authorization: Bearer ${API_DATA_TOKEN}"  \

@@ -23,7 +23,7 @@ instructions in the file.
 
 There are three sets of scripts:
 
-- `*_dt_unstructured.sh`: Digital twin with telemetry in unstructured format
+- `*_dtu.sh`: Digital twin with telemetry in unstructured format
 - `*_dtd_m5_env.sh`: Digital twin with telemetry in structured format using the default
   adapter format
 - `*_dtc_m5_env.sh`: Digital twin with telemetry in structured format using a custom

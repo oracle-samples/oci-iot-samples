@@ -24,14 +24,14 @@ IOT_DOMAIN_ID="ocid1.iotdomain...."
 # the Domain Group.
 # You can retrieve it with the following command:
 # oci iot domain-group get --iot-domain-group-id <IoT Domain Group OCID> \
-#   --query data.dataHost --raw-output
+#   --query 'data."data-host"' --raw-output
 DOMAIN_GROUP_SHORT_ID=
 
 # The Domain Short ID is the first element of the deviceHost property of the
 # Domain.
 # You can retrieve it with the following command:
 # oci iot domain get --iot-domain-id <IoT Domain OCID> \
-#   --query data.deviceHost --raw-output
+#   --query 'data."device-host"' --raw-output
 DOMAIN_SHORT_ID=
 
 # IAM Domain URL (format: https://idcs-<redacted>.identity.oraclecloud.com:443)

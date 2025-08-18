@@ -28,7 +28,7 @@ dt_id=$(oci iot digital-twin-instance list \
   --iot-domain-id "${IOT_DOMAIN_ID}" \
   --display-name "${UDT_ID}" \
   --lifecycle-state ACTIVE \
-  --query "data[0].id" --raw-output
+  --query "data.items[0].id" --raw-output
 )
 if [[ ! ${dt_id} =~ ^ocid1\.iotdigitaltwininstance\. ]]; then
   echo "${PGM}: Cannot find digital twin"
@@ -36,7 +36,7 @@ if [[ ! ${dt_id} =~ ^ocid1\.iotdigitaltwininstance\. ]]; then
 fi
 
 echo "${PGM}: Query unstructured DT ${UDT_ID}"
-oci iot digital-twin-instance get -digital-twin-instance-id "${dt_id}"
+oci iot digital-twin-instance get --digital-twin-instance-id "${dt_id}"
 
 echo "${PGM}: Recent raw data"
 if [[ $(uname -s) == "Darwin" ]]; then

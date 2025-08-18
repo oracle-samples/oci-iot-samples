@@ -28,7 +28,7 @@ dt_id=$(oci iot digital-twin-instance list \
   --iot-domain-id "${IOT_DOMAIN_ID}" \
   --display-name "${DTD_ENV_ID}" \
   --lifecycle-state ACTIVE \
-  --query "data[0].id" --raw-output
+  --query "data.items[0].id" --raw-output
 )
 if [[ ! ${dt_id} =~ ^ocid1\.iotdigitaltwininstance\. ]]; then
   echo "${PGM}: Cannot find digital twin"
@@ -36,10 +36,10 @@ if [[ ! ${dt_id} =~ ^ocid1\.iotdigitaltwininstance\. ]]; then
 fi
 
 echo "${PGM}: Query DT ${DTD_ENV_ID}"
-oci iot digital-twin-instance get -digital-twin-instance-id "${dt_id}"
+oci iot digital-twin-instance get --digital-twin-instance-id "${dt_id}"
 
 echo "${PGM}: Query DT ${DTD_ENV_ID} content"
-oci iot digital-twin-instance get-content -digital-twin-instance-id "${dt_id}"
+oci iot digital-twin-instance get-content --digital-twin-instance-id "${dt_id}"
 
 echo "${PGM}: Recent raw data"
 if [[ $(uname -s) == "Darwin" ]]; then
@@ -58,8 +58,8 @@ curl -k -s --get \
 
 echo "${PGM}: Recent historized data"
 curl -k -s --get \
-  --location "${IOT_DATA_ENDPOINT}/digitalTwin/historizedData" \
-  --data-urlencode 'q={"$and":[{"digital_twin_id":"'"${dt_id}"'"},{"time_observed":{"$gte":{"$date":"'"${recently}"'"}}}]}' \
+  --location "${IOT_DATA_ENDPOINT}/historizedData" \
+  --data-urlencode 'q={"$and":[{"digital_twin_instance_id":"'"${dt_id}"'"},{"time_observed":{"$gte":{"$date":"'"${recently}"'"}}}]}' \
   --data-urlencode offset=0 \
   --data-urlencode limit=100 \
   --header "Authorization: Bearer ${API_DATA_TOKEN}"  \

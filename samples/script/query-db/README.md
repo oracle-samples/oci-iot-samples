@@ -9,7 +9,7 @@ This guide shows how to connect to your IoT database using
 ## Prerequisites
 
 <!-- markdownlint-disable MD013 -->
-- Your client IP address must be included in the Allow List defined at the IoT
+- Your client VCN must be included in the Allow List defined at the IoT
   Domain Group level – [Documentation](.).
 - Database authentication is handled by
   [OCI Identity Database Tokens](https://docs.oracle.com/en/cloud/paas/autonomous-database/serverless/adbsb/iam-access-database.html#GUID-CFC74EAF-E887-4B1F-9E9A-C956BCA0BEA9).  
@@ -33,7 +33,7 @@ Obtain the database token scope and retrieve a token:
 iot_domain_group_id="<IoT Domain Group OCID>"
 iot_db_token_scope=$(
   oci iot domain-group get --iot-domain-group-id "${iot_domain_group_id}" \
-   --query data.dbTokenScope --raw-output
+   --query 'data."db-token-scope"' --raw-output
 )
 # Get token (valid for 60 minutes)
 oci iam db-token get --scope "${iot_db_token_scope}"
@@ -44,7 +44,7 @@ Obtain the JDBC connect string and connect to the database:
 ```shell
 iot_db_connect_string=$(
   oci iot domain-group get --iot-domain-group-id "${iot_domain_group_id}" \
-  --query data.dbConnectionString --raw-output
+  --query 'data."db-connection-string"' --raw-output
 )
 sql "/@jdbc:oracle:thin:@${iot_db_connect_string}&TOKEN_AUTH=OCI_TOKEN"
 ```
@@ -59,8 +59,8 @@ can be retrieved with:
 
 ```shell
 iot_domain_id="<IoT Domain OCID>"
-  oci iot domain get --iot-domain-id "${iot_domain_group_id}" |
-  jq -r '.data.deviceHost | split(".")[0]'
+oci iot domain get --iot-domain-id "${iot_domain_id}" |
+  jq -r '.data."device-host" | split(".")[0]'
 ```
 
 ## Sample SQL sessions
@@ -75,7 +75,7 @@ select
     rd.time_received,
     rd.endpoint,
     utl_raw.cast_to_varchar2(dbms_lob.substr(rd.content, 40)) as content
-from raw_data rd, digital_twins dt
+from raw_data rd, digital_twin_instances dt
 where rd.digital_twin_instance_id = dt.data."_id"
   and rd.time_received > sysdate - 1/24/12
 order by rd.time_received;
@@ -90,8 +90,8 @@ select
     hd.time_observed,
     hd.content_path,
     json_serialize (hd.value returning varchar2(40) truncate error on error) as value
-from digital_twin_historized_data hd, digital_twins dt
-where hd.digital_twin_id = dt.data."_id"
+from historized_data hd, digital_twin_instances dt
+where hd.digital_twin_instance_id = dt.data."_id"
   and hd.time_observed > sysdate - 1/24/12
 order by hd.time_observed;
 ```
@@ -107,7 +107,7 @@ select
     rd.reason_code,
     rd.reason_message,
     utl_raw.cast_to_varchar2(dbms_lob.substr(rd.content, 40)) as content
-from rejected_data rd, digital_twins dt
+from rejected_data rd, digital_twin_instances dt
 where rd.digital_twin_instance_id = dt.data."_id"
   and rd.time_received > sysdate - 1/24/12
 order by rd.time_received;

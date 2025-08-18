@@ -4,7 +4,7 @@
 # Device host.
 # The device host is an IoT Domain property and can be retrieved using:
 #   oci iot domain get --iot-domain-id <IoT Domain OCID> \
-#       --query data.deviceHost --raw-output
+#       --query 'data."device-host"' --raw-output
 iot_device_host = "<Device Host>"
 
 # The MQTT topic.

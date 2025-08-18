@@ -71,40 +71,39 @@ oci iot digital-twin-model create \
         "@type": ["Telemetry", "Historized"],
         "name": "system",
         "displayName":"System Message",
-        "schema": {
-          "@type":"Object"
-        }
+        "schema": "string"
       }
     ]
   }'
 
 echo "${PGM}: Create Custom Environmental DT Adapter ${DTC_ENV_ADAPTER}"
 oci iot digital-twin-adapter create \
+  --iot-domain-id "${IOT_DOMAIN_ID}" \
   --display-name "${DTC_ENV_ADAPTER}" \
   --description "A digital twin adapter for ${DTC_ENV_MODEL_ID}" \
-  --iot-domain-id "${IOT_DOMAIN_ID}" \
   --digital-twin-model-spec-uri "${DTC_ENV_MODEL_ID}" \
   --inbound-envelope '{
-      "envelopeMapping": {
-        "timeObserved": "$.time"
+      "envelope-mapping": {
+        "time-observed": "$.time"
       },
-      "referenceEndpoint": "/",
-      "referencePayload": {
+      "reference-endpoint": "iot/environ",
+      "reference-payload": {
         "data": {
           "count": 0,
           "humidity": 0.0,
           "pressure": 0.0,
           "qmp_temperature": 0.0,
-          "sht_temperature": 0.0
+          "sht_temperature": 0.0,
+          "time": 0
         },
-        "dataFormat": "JSON"
+        "data-format": "JSON"
       }
     }' \
   --inbound-routes '[
       {
         "condition": "${endpoint(1) == \"iot\"}",
         "description": "Environment data",
-        "payloadMapping": {
+        "payload-mapping": {
           "$.count": "$.count",
           "$.humidity": "$.humidity",
           "$.pressure": "$.pressure",
@@ -115,8 +114,8 @@ oci iot digital-twin-adapter create \
       {
         "condition": "*",
         "description": "Default condition",
-        "payloadMapping": {
-          "$.system": "$"
+        "payload-mapping": {
+          "$.system": "${ . | tostring }"
         }
       }
     ]'
@@ -126,7 +125,7 @@ adapter_id=$(oci iot digital-twin-adapter list \
   --iot-domain-id "${IOT_DOMAIN_ID}" \
   --display-name "${DTC_ENV_ADAPTER}" \
   --lifecycle-state ACTIVE \
-  --query "data[0].id" --raw-output
+  --query "data.items[0].id" --raw-output
 )
 if [[ ! ${adapter_id} =~ ^ocid1\.iotdigitaltwinadapter\. ]]; then
   echo "${PGM}: Cannot find adapter"

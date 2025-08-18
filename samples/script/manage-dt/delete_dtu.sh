@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Create unstructured DT
+# Workflow 1 - Teardown unstructured DT
 #
 # Copyright (c) 2025 Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at
@@ -19,10 +19,17 @@ readonly PGM_DIR
 # shellcheck disable=SC1091
 source "${PGM_DIR}/environ.sh"
 
-echo "${PGM}: Create unstructured DT ${UDT_ID}"
-oci iot digital-twin-instance create \
-  --display-name "${UTD_ID}" \
-  --description "${UTD_ID}" \
+echo "${PGM}: Retrieve ${UDT_ID} OCID"
+dt_id=$(oci iot digital-twin-instance list \
   --iot-domain-id "${IOT_DOMAIN_ID}" \
-  --external-key "${UTD_DEVICE_USER}" \
-  --auth-id "${UTD_DEVICE_PASSWORD_ID_ID}"
+  --display-name "${UDT_ID}" \
+  --lifecycle-state ACTIVE \
+  --query "data.items[0].id" --raw-output
+)
+if [[ ! ${dt_id} =~ ^ocid1\.iotdigitaltwininstance\. ]]; then
+  echo "${PGM}: Cannot find digital twin"
+  exit 1
+fi
+
+echo "${PGM}: Delete opaque DT ${UDT_ID}"
+  oci iot digital-twin-instance delete --digital-twin-instance-id "${dt_id}"

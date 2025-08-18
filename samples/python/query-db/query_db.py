@@ -112,7 +112,7 @@ try:
             print("\n--- Latest raw messages ---")
             sql = f"""
                 select dt.data.displayName, rd.time_received, rd.endpoint, rd.content
-                from raw_data rd, digital_twins dt
+                from raw_data rd, digital_twin_instances dt
                 where rd.digital_twin_instance_id = dt.data."_id"
                 order by rd.id desc
                 fetch first {config.row_count} rows only
@@ -127,8 +127,8 @@ try:
             print("\n--- Latest historized messages ---")
             sql = f"""
                 select dt.data.displayName, hd.time_observed, hd.content_path, hd.value
-                from digital_twin_historized_data hd, digital_twins dt
-                where hd.digital_twin_id = dt.data."_id"
+                from historized_data hd, digital_twin_instances dt
+                where hd.digital_twin_instance_id = dt.data."_id"
                 order by hd.id desc
                 fetch first {config.row_count} rows only
             """
@@ -144,7 +144,7 @@ try:
             sql = f"""
                 select dt.data.displayName, rd.time_received, rd.endpoint, rd.content,
                     rd.reason_code, rd.reason_message
-                from rejected_data rd, digital_twins dt
+                from rejected_data rd, digital_twin_instances dt
                 where rd.digital_twin_instance_id = dt.data."_id"
                 order by rd.id desc
                 fetch first {config.row_count} rows only

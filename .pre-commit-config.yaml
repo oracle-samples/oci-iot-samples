@@ -1,0 +1,63 @@
+#
+# Pre-commit configuration
+#
+# Copyright (c) 2025 Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at
+# https://oss.oracle.com/licenses/upl.
+#
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+#
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        # PL/SQL Package bodies can be large...
+        exclude: .\.pkb$
+        args: ["--maxkb=64"]
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-illegal-windows-names
+      - id: check-json
+      - id: check-yaml
+      - id: end-of-file-fixer
+        exclude_types: [svg, sql]
+      - id: trailing-whitespace
+        # Trailing should remain in markdown files
+        exclude_types: [markdown, sql]
+        exclude: |
+          (?x)^(
+            .*/.bumpversion  # bum2version leaves trailing spaces
+          )
+
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        additional_dependencies: [flake8-comprehensions, flake8-docstrings, flake8-import-order, pep8-naming, pydocstyle]
+        args: ["--ignore", "E501,D103,D100,W503,E203", "--import-order-style", "google"]
+
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 3.0.0
+    hooks:
+      - id: shellcheck
+        exclude: .\.zsh$
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.18.1
+    hooks:
+      - id: markdownlint-cli2
+
+  - repo: local
+    hooks:
+      - id: forbid-binary
+        name: Forbid binaries
+        description: Forbid binary files from being committed
+        entry: pre_commit_hooks/forbid_binary.sh
+        language: script
+        types: ["binary"]

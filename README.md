@@ -67,15 +67,3 @@ vulnerability disclosure process.
 ## License
 
 See [LICENSE](./LICENSE.txt).
-
-## Disclaimer
-
-Oracle and its affiliates do not provide any warranty whatsoever, express or implied, for
-any software, material or content of any kind contained or produced within this
-repository, and in particular specifically disclaim any and all implied warranties of
-title, non-infringement, merchantability, and fitness for a particular purpose.
-Furthermore, Oracle and its affiliates do not represent that any customary security
-review has been performed with respect to any software, material or content contained or
-produced within this repository. In addition, and without limiting the foregoing,
-third parties may have posted software, material or content to this repository
-without any review. Use at your own risk.

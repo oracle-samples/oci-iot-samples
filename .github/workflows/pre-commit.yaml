@@ -1,0 +1,60 @@
+#
+# Github workflow for pre-commit
+#
+# Copyright (c) 2025 Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at
+# https://oss.oracle.com/licenses/upl.
+#
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+#
+name: Pre-commit checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history to ensure pre-commit can find merge-base
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.0'
+
+      - name: Install ShellCheck
+        shell: bash
+        env:
+          SHELLCHECK_VERSION: 'v0.11.0'
+        run: |
+          echo "Installing ShellCheck..."
+          mkdir --parents "${HOME}/.local/bin"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          curl --silent --location \
+              "https://github.com/koalaman/shellcheck/releases/download/${SHELLCHECK_VERSION}/shellcheck-${SHELLCHECK_VERSION}.linux.x86_64.tar.xz" |
+              tar --extract --xz --directory="${HOME}/.local/bin" \
+              --strip-components=1 "shellcheck-${SHELLCHECK_VERSION}/shellcheck"
+          shellcheck --version
+
+      - name: Install pre-commit
+        env:
+          PRE_COMMIT_VERSION: '4.3.0'
+        run: |
+          pip install pre-commit==${PRE_COMMIT_VERSION}
+          pre-commit --version
+
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files

@@ -33,6 +33,8 @@ via ORDS endpoints), you can use:
 
 There are several options to view telemetry:
 
+- The APEX IoT Platform Explorer (see below): this is the easiest
+  way to get an overview of your telemetry data.
 - The APEX SQL Workshop to browse the database.
 - Connect directly to the database with
   [SQLcl](https://www.oracle.com/database/sqldeveloper/technologies/sqlcl/) or

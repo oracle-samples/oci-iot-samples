@@ -39,6 +39,11 @@ There are several options to view telemetry:
   [SQL Developer](https://www.oracle.com/database/sqldeveloper/) (see below).
 - Query the database using the ORDS endpoints (see below).
 
+## IoT Platform Explorer
+
+Sample [APEX application](./apex/dashboard) that allows you to browse your IoT devices
+as well as the messages received.
+
 ## How To
 
 | Description                                          | Command Line          | Python       |

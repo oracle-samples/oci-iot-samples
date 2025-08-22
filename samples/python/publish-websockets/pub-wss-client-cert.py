@@ -40,7 +40,7 @@ def current_epoch_microseconds():
 # The sample telemetry below is compatible with all three Digital Twins created
 # in the "Manage Digital Twins" section of this repository.
 telemetry_data = {
-    "timestamp": 0,
+    "time": 0,
     "sht_temperature": 23.8,
     "qmp_temperature": 24.4,
     "humidity": 56.1,
@@ -79,7 +79,7 @@ client.loop_start()
 # Send telemetry
 for count in range(1, config.message_count + 1):
     print(f"Sending message #{count}")
-    telemetry_data["timestamp"] = current_epoch_microseconds()
+    telemetry_data["time"] = current_epoch_microseconds()
     telemetry_data["count"] = count
     rc = client.publish(
         topic=config.iot_endpoint,

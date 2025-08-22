@@ -28,7 +28,7 @@ def current_epoch_microseconds():
 
 # Telemetry data example.
 telemetry_data = {
-    "timestamp": 0,
+    "time": 0,
     "sht_temperature": 23.8,
     "qmp_temperature": 24.4,
     "humidity": 56.1,
@@ -67,7 +67,7 @@ def on_message(client, userdata, message, properties=None):
         # Build corresponding /rsp topic
         rsp_topic = topic[:-4] + "/rsp"
         ack_msg = json.dumps(
-            {"status": "acknowledged", "timestamp": current_epoch_microseconds()}
+            {"status": "acknowledged", "time": current_epoch_microseconds()}
         )
         print(f"Sending ack to {rsp_topic}: {ack_msg}")
         client.publish(topic=rsp_topic, payload=ack_msg, qos=config.qos)
@@ -105,7 +105,7 @@ try:
     print("Telemetry loop -- Press Ctrl-C to stop.")
     while not shutdown_event.is_set():
         print(f"Sending message #{count}")
-        telemetry_data["timestamp"] = current_epoch_microseconds()
+        telemetry_data["time"] = current_epoch_microseconds()
         telemetry_data["count"] = count
         rc_pub = client.publish(
             topic=config.iot_endpoint,

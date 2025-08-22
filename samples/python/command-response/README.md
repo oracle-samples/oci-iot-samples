@@ -91,12 +91,12 @@ Sending message #5
 Sending message #6
 Sending message #7
 Received command on iot/v1/cmd: {"hello":"world"}
-Sending ack to iot/v1/rsp: {"status": "acknowledged", "timestamp": 1753456852150}
+Sending ack to iot/v1/rsp: {"status": "acknowledged", "time": 1753456852150}
 Sending message #8
 Sending message #9
 Received command on iot/v1/cmd: {"shutdown":true}
 Shutdown command received. Preparing to exit...
-Sending ack to iot/v1/rsp: {"status": "acknowledged", "timestamp": 1753456874872}
+Sending ack to iot/v1/rsp: {"status": "acknowledged", "time": 1753456874872}
 Waiting 2 seconds to process possible /cmd messages...
 Terminated
 $

@@ -71,7 +71,9 @@ oci iot digital-twin-model create \
         "@type": ["Telemetry", "Historized"],
         "name": "system",
         "displayName":"System Message",
-        "schema": "string"
+        "schema": {
+          "@type":"Object"
+        }
       }
     ]
   }'
@@ -115,7 +117,7 @@ oci iot digital-twin-adapter create \
         "condition": "*",
         "description": "Default condition",
         "payload-mapping": {
-          "$.system": "${ . | tostring }"
+          "$.system": "$"
         }
       }
     ]'

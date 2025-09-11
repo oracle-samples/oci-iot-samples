@@ -10,21 +10,31 @@ This guide shows how to connect to your IoT database using
 
 <!-- markdownlint-disable MD013 -->
 - Your client VCN must be included in the Allow List defined at the IoT
-  Domain Group level – [Documentation](.).
+  Domain Group level.
 - Database authentication is handled by
   [OCI Identity Database Tokens](https://docs.oracle.com/en/cloud/paas/autonomous-database/serverless/adbsb/iam-access-database.html#GUID-CFC74EAF-E887-4B1F-9E9A-C956BCA0BEA9).  
   To retrieve a valid token, the requester must be part of one of the identity
-  groups listed at the IoT Domain level – [Documentation](.).
+  groups listed at the IoT Domain level.
   The OCI IoT Platform supports _Instance Principal_ authentication; that is,
   the identity group can be a _Dynamic Group_.
 <!-- markdownlint-enable MD013 -->
 
+See [Direct database access](../iot-from-scratch/database-access.md) for more details.
+
 ## Connecting to the database
+
+To install the OCI CLI and SQLcl on Oracle Linux 9, run:
+
+```bash
+sudo dnf install -y sqlcl jdk-24-headless python39-oci-cli
+```
 
 For the `oci` command:
 
-- API key authentication: add the `--profile` option to use a non-default profile.
-- Instance principal authentication: use the `--auth instance_principal` option.
+- API key authentication: add the `--profile` option to use a non-default profile or add
+  `OCI_CLI_PROFILE=<your profile>` to you environment.
+- Instance principal authentication: use the `--auth instance_principal` option or add
+  `OCI_CLI_AUTH=instance_principal` to your environment.
 
 Obtain the database token scope and retrieve a token:
 

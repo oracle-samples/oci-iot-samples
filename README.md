@@ -6,7 +6,8 @@ Platform.
 ## Setup
 
 The examples and tutorials in this repository assume you have already provisioned an IoT
-Domain Group and an IoT Domain.
+Domain Group and an IoT Domain. The [IoT from scratch](./samples/script/iot-from-scratch/README.md)
+example can be used to setup a complete environment from the command line.
 
 ## Sending Messages to the OCI IoT Platform Using a GUI
 
@@ -50,6 +51,7 @@ as well as the messages received.
 
 | Description                                          | Command Line          | Python       |
 |------------------------------------------------------|:---------------------:|:------------:|
+| IoT from scratch (Setup IoT environment from command line) | [Sample](./samples/script/iot-from-scratch/) |              |
 | Manage Digital Twins (Create, delete, ...)           | [Sample](./samples/script/manage-dt/) |              |
 | Publish telemetry (HTTPS - REST API)                 | [Sample](./samples/script/publish-https/) | [Sample](./samples/python/publish-https/)  |
 | Publish telemetry (MQTTS - Secure MQTT)              |                       | [Sample](./samples/python/publish-mqtt/)  |

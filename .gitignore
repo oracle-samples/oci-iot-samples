@@ -11,6 +11,9 @@ config.py
 *.crt
 *.key
 
+# Diagram backup files
+.$*.bkp
+
 #
 # Generic macOS
 #

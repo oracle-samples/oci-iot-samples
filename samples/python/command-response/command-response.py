@@ -26,8 +26,6 @@ import paho.mqtt.client as mqtt
 
 MQTT_PORT = 8883
 
-shutdown_event = threading.Event()
-
 
 # Get the current UTC time as an epoch value in microseconds.
 def current_epoch_microseconds():
@@ -45,6 +43,7 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
 def on_message(client, userdata, message, properties=None):
     topic = message.topic
     payload = message.payload.decode()
+    state = userdata
     if topic.endswith("/cmd"):
         print(f"Received command on {topic}: {payload}")
         # Command handling logic goes here.
@@ -57,15 +56,16 @@ def on_message(client, userdata, message, properties=None):
 
         if cmd and cmd.get("shutdown", False):
             print("Shutdown command received. Preparing to exit...")
-            shutdown_event.set()  # Signal the telemetry loop to stop.
+            state["shutdown_event"].set()  # Signal the telemetry loop to stop.
 
         # Build corresponding /rsp topic
         rsp_topic = topic[:-4] + "/rsp"
         ack_msg = json.dumps(
             {"status": "acknowledged", "time": current_epoch_microseconds()}
         )
-        print(f"Sending ack to {rsp_topic}: {ack_msg}")
-        client.publish(topic=rsp_topic, payload=ack_msg, qos=config.qos)
+        state["ack_msg_info"].append(
+            client.publish(topic=rsp_topic, payload=ack_msg, qos=config.qos)
+        )
 
 
 client = mqtt.Client(
@@ -74,6 +74,11 @@ client = mqtt.Client(
     protocol=mqtt.MQTTv311,  # Use v311 unless v5 features are needed.
     callback_api_version=mqtt.CallbackAPIVersion.VERSION2,  # type: ignore
 )
+state = {
+    "ack_msg_info": [],
+    "shutdown_event": threading.Event(),
+}
+client.user_data_set(state)
 client.on_connect = on_connect
 client.on_message = on_message
 
@@ -101,7 +106,7 @@ try:
     )
     count = 1
     print("Telemetry loop -- Press Ctrl-C to stop.")
-    while not shutdown_event.is_set():
+    while not state["shutdown_event"].is_set():
         print(f"Sending message #{count}")
         rc_pub = client.publish(
             topic=config.iot_endpoint,
@@ -111,12 +116,19 @@ try:
         rc_pub.wait_for_publish()
         count += 1
         time.sleep(config.message_delay)
+        # Drain ack_msg_info
+        while state["ack_msg_info"]:
+            state["ack_msg_info"].pop(0).wait_for_publish()
+
 except KeyboardInterrupt:
     print("\nInterrupted by user. Exiting...")
 
 # Wait to process any potential /cmd messages before exit.
 print("Waiting 2 seconds to process possible /cmd messages...")
 time.sleep(2)
+# Drain ack_msg_info
+while state["ack_msg_info"]:
+    state["ack_msg_info"].pop(0).wait_for_publish()
 
 # Tear down the client and exit.
 client.loop_stop()

@@ -40,7 +40,7 @@ repos:
     hooks:
       - id: flake8
         additional_dependencies: [flake8-comprehensions, flake8-docstrings, flake8-import-order, pep8-naming, pydocstyle]
-        args: ["--ignore", "E501,D103,D100,W503,E203", "--import-order-style", "google"]
+        args: ["--ignore", "E501,D103,D100,W503,E203,E402", "--import-order-style", "google"]
 
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 3.0.0

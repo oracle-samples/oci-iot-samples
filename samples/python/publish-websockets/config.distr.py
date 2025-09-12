@@ -14,6 +14,9 @@ iot_endpoint = "iot/v1/mqtt"
 message_count = 10
 message_delay = 0.5
 
+# Format of the "time" field in the payload ("none", "epoch", "iso")
+time_format = "epoch"
+
 # Quality of Service
 qos = 1
 

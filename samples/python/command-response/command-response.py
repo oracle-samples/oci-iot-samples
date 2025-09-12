@@ -11,11 +11,17 @@ DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 """
 
 import json
+import os
 import sys
 import threading
 import time
 
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "shared"))
+)
+
 import config
+import environmental_sensor_simulator
 import paho.mqtt.client as mqtt
 
 MQTT_PORT = 8883
@@ -24,19 +30,6 @@ MQTT_PORT = 8883
 # Get the current UTC time as an epoch value in microseconds.
 def current_epoch_microseconds():
     return int(time.time() * 1000 * 1000)
-
-
-# Telemetry data example.
-telemetry_data = {
-    "time": 0,
-    "sht_temperature": 23.8,
-    "qmp_temperature": 24.4,
-    "humidity": 56.1,
-    "pressure": 1012.2,
-    "count": 0,
-}
-
-shutdown_event = threading.Event()
 
 
 # Callback for MQTT connection event.
@@ -50,6 +43,7 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
 def on_message(client, userdata, message, properties=None):
     topic = message.topic
     payload = message.payload.decode()
+    state = userdata
     if topic.endswith("/cmd"):
         print(f"Received command on {topic}: {payload}")
         # Command handling logic goes here.
@@ -62,16 +56,20 @@ def on_message(client, userdata, message, properties=None):
 
         if cmd and cmd.get("shutdown", False):
             print("Shutdown command received. Preparing to exit...")
-            shutdown_event.set()  # Signal the telemetry loop to stop.
+            state["shutdown_event"].set()  # Signal the telemetry loop to stop.
 
         # Build corresponding /rsp topic
         rsp_topic = topic[:-4] + "/rsp"
         ack_msg = json.dumps(
             {"status": "acknowledged", "time": current_epoch_microseconds()}
         )
-        print(f"Sending ack to {rsp_topic}: {ack_msg}")
-        client.publish(topic=rsp_topic, payload=ack_msg, qos=config.qos)
+        state["ack_msg_info"].append(
+            client.publish(topic=rsp_topic, payload=ack_msg, qos=config.qos)
+        )
 
+
+if config.auth_type not in ("basic", "cert"):
+    raise ValueError("auth_type must be 'basic' or 'cert'")
 
 client = mqtt.Client(
     client_id=config.client_id,  # Ensure client_id is set for persistent sessions.
@@ -79,14 +77,21 @@ client = mqtt.Client(
     protocol=mqtt.MQTTv311,  # Use v311 unless v5 features are needed.
     callback_api_version=mqtt.CallbackAPIVersion.VERSION2,  # type: ignore
 )
+state = {
+    "ack_msg_info": [],
+    "shutdown_event": threading.Event(),
+}
+client.user_data_set(state)
 client.on_connect = on_connect
 client.on_message = on_message
 
-# TLS/SSL configuration.
-client.tls_set(ca_certs=config.ca_certs)
-
-# Authentication.
-client.username_pw_set(username=config.username, password=config.password)
+if config.auth_type == "basic":
+    client.tls_set(ca_certs=config.ca_certs)
+    client.username_pw_set(username=config.username, password=config.password)
+else:
+    client.tls_set(
+        ca_certs=config.ca_certs, certfile=config.client_cert, keyfile=config.client_key
+    )
 
 # Configure proxy if needed.
 if config.proxy_args:
@@ -101,26 +106,34 @@ client.loop_start()
 
 # Send telemetry messages.
 try:
+    telemetry = environmental_sensor_simulator.EnvironmentalSensorSimulator(
+        time_format=config.time_format
+    )
     count = 1
     print("Telemetry loop -- Press Ctrl-C to stop.")
-    while not shutdown_event.is_set():
+    while not state["shutdown_event"].is_set():
         print(f"Sending message #{count}")
-        telemetry_data["time"] = current_epoch_microseconds()
-        telemetry_data["count"] = count
         rc_pub = client.publish(
             topic=config.iot_endpoint,
-            payload=json.dumps(telemetry_data),
+            payload=json.dumps(telemetry.get_telemetry()),
             qos=config.qos,
         )
         rc_pub.wait_for_publish()
         count += 1
         time.sleep(config.message_delay)
+        # Drain ack_msg_info
+        while state["ack_msg_info"]:
+            state["ack_msg_info"].pop(0).wait_for_publish()
+
 except KeyboardInterrupt:
     print("\nInterrupted by user. Exiting...")
 
 # Wait to process any potential /cmd messages before exit.
 print("Waiting 2 seconds to process possible /cmd messages...")
 time.sleep(2)
+# Drain ack_msg_info
+while state["ack_msg_info"]:
+    state["ack_msg_info"].pop(0).wait_for_publish()
 
 # Tear down the client and exit.
 client.loop_stop()

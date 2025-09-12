@@ -68,6 +68,9 @@ def on_message(client, userdata, message, properties=None):
         )
 
 
+if config.auth_type not in ("basic", "cert"):
+    raise ValueError("auth_type must be 'basic' or 'cert'")
+
 client = mqtt.Client(
     client_id=config.client_id,  # Ensure client_id is set for persistent sessions.
     clean_session=False,  # Enable persistent session.
@@ -82,11 +85,13 @@ client.user_data_set(state)
 client.on_connect = on_connect
 client.on_message = on_message
 
-# TLS/SSL configuration.
-client.tls_set(ca_certs=config.ca_certs)
-
-# Authentication.
-client.username_pw_set(username=config.username, password=config.password)
+if config.auth_type == "basic":
+    client.tls_set(ca_certs=config.ca_certs)
+    client.username_pw_set(username=config.username, password=config.password)
+else:
+    client.tls_set(
+        ca_certs=config.ca_certs, certfile=config.client_cert, keyfile=config.client_key
+    )
 
 # Configure proxy if needed.
 if config.proxy_args:

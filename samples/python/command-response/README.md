@@ -77,9 +77,16 @@ Copy `config.distr.py` to `config.py` and set the following variables:
   here. See the
   [proxy_set](https://eclipse.dev/paho/files/paho.mqtt.python/html/client.html#paho.mqtt.client.Client.proxy_set)
   documentation for more details.
-- `username`: The "externalKey" property of your Digital Twin.
-- `password`: The Digital Twin password; that is, the content of the vault secret
-  corresponding to the authId property of your Digital Twin.
+- `auth_type`: Authentication type: `basic` or `cert`.
+- For basic authentication:
+  - `username`: The "externalKey" property of your Digital Twin.
+  - `password`: The Digital Twin password; that is, the content of the vault secret
+    corresponding to the authId property of your Digital Twin.
+- For certificate authentication:
+  - Set the path to your client certificate and key in the `client_cert` and `client_key`
+    variables.
+  - Keep in mind that the `authId` property of your Digital Twin must match the
+    Common Name (CN) of the certificate.
 
 Run the script:
 

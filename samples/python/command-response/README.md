@@ -7,10 +7,6 @@ We are using the [Eclipse Paho](http://eclipse.org/paho/) MQTT Python client lib
 
 Note that the OCI IoT Platform only supports MQTT Secure (MQTTS) on port 8883.
 
-We only illustrate a connection using password-based authentication with MQTT Secure (MQTTS).
-This example can be easily modified to use certificate-based authentication and/or WebSocket
-Secure (WSS) -- see the respective "publish" examples in this repository.
-
 ## Scenario
 
 The `command-response.py` script will establish an MQTT connection with the OCI IoT
@@ -28,9 +24,37 @@ Install the Python dependencies
 pip install -r requirements.txt
 ```
 
-The script assumes a Digital Twin with unstructured telemetry has already been created.
+The script assumes a Digital Twin has already been created.
 
 ## Configure and run the script
+
+### Telemetry payload
+
+- For unstructured telemetry, the content can be arbitrary.
+- For structured telemetry, it must match the Model/Adapter.
+- For structured telemetry in the default format, if a "time" property is specified,
+  it must be an epoch time in microseconds and will override the "time_observed" field
+  in the database.
+- The same applies to structured telemetry in a custom format, but the mapping must be
+  defined in the adapter.
+
+The sample telemetry used by the scripts is compatible with all three Digital Twins
+created in the "Manage Digital Twins" section of this repository:
+
+```json
+telemetry_data = {
+    "time": 1757512025226854,
+    "sht_temperature": 23.8,
+    "qmp_temperature": 24.4,
+    "humidity": 56.1,
+    "pressure": 1012.2,
+    "count": 1,
+}
+```
+
+The `time` field is optional, this can be specified in the configuration file (see below)
+
+### Configuration file
 
 Copy `config.distr.py` to `config.py` and set the following variables:
 
@@ -101,3 +125,6 @@ Waiting 2 seconds to process possible /cmd messages...
 Terminated
 $
 ```
+
+You can check the status of the message delivery and response in the `RAW_COMMAND_DATA`
+database view.

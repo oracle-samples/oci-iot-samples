@@ -11,41 +11,26 @@ DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 """
 
 import json
-from time import time
+import os
+import sys
+
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "shared"))
+)
 
 import config
+import environmental_sensor_simulator
 import requests
 
-
-# Get the current UTC time as epoch in microseconds
-def current_epoch_microseconds():
-    return int(time() * 1000 * 1000)
-
-
-# Telemetry data.
-# - For unstructured telemetry, the content can be arbitrary.
-# - For structured telemetry, it must match the Model/Adapter.
-# - For structured telemetry in the default format, if a "time" property is
-#     specified, it must be an epoch time in microseconds and will override the
-#     "time_observed" property.
-# - The same applies to structured telemetry in a custom format, but the
-#   mapping must be defined in the adapter.
-#
-# The sample telemetry below is compatible with all three Digital Twins created
-# in the "Manage Digital Twins" section of this repository.
-telemetry_data = {
-    "time": current_epoch_microseconds(),
-    "sht_temperature": 23.8,
-    "qmp_temperature": 24.4,
-    "humidity": 56.1,
-    "pressure": 1012.2,
-    "count": 5479,
-}
+telemetry = environmental_sensor_simulator.EnvironmentalSensorSimulator(
+    time_format=config.time_format
+)
+payload = json.dumps(telemetry.get_telemetry())
 
 try:
     response = requests.post(
         f"https://{config.iot_device_host}/{config.iot_endpoint}",
-        data=json.dumps(telemetry_data),
+        data=payload,
         headers={"Content-Type": "application/json"},
         auth=(config.username, config.password),  # Basic auth
     )

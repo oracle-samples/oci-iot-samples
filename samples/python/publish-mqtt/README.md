@@ -34,6 +34,32 @@ The sample payload sent will be accepted by any of the Digital Twins created by 
 
 ## Configure and run the scripts
 
+### Telemetry payload
+
+- For unstructured telemetry, the content can be arbitrary.
+- For structured telemetry, it must match the Model/Adapter.
+- For structured telemetry in the default format, if a "time" property is specified,
+  it must be an epoch time in microseconds and will override the "time_observed" field
+  in the database.
+- The same applies to structured telemetry in a custom format, but the mapping must be
+  defined in the adapter.
+
+The sample telemetry used by the scripts is compatible with all three Digital Twins
+created in the "Manage Digital Twins" section of this repository:
+
+```json
+telemetry_data = {
+    "time": 1757512025226854,
+    "sht_temperature": 23.8,
+    "qmp_temperature": 24.4,
+    "humidity": 56.1,
+    "pressure": 1012.2,
+    "count": 1,
+}
+```
+
+The `time` field is optional, this can be specified in the configuration file (see below)
+
 ### Common configuration
 
 Copy `config.distr.py` to `config.py` and set the following variables:
@@ -42,6 +68,10 @@ Copy `config.distr.py` to `config.py` and set the following variables:
 - `iot_endpoint`: The  MQTT topic for your telemetry.
 - `message_count` and `message_delay`: The number of messages to send and the delay in
   seconds between messages.
+- `time_format`: format of the `time` field in the payload:
+  - `none`: No time information is included in the payload.
+  - `epoch`: Current time as integer microseconds since Unix epoch.
+  - `iso`: Current time as an ISO8601 string in UTC (with 'Z' suffix).
 - `ca_certs`: The path to the CA certificate for the OCI IoT Platform.  
   In most cases, you won't need to specify this: OCI uses certificate authorities from
   well-established providers, and recent Python versions will find the CA certificate

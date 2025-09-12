@@ -13,38 +13,19 @@ DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 """
 
 import json
+import os
+import sys
 import time
 
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "shared"))
+)
+
 import config
+import environmental_sensor_simulator
 import paho.mqtt.publish as publish
 
 WEBSOCKET_PORT = 443
-
-
-# Get the current UTC time as epoch in microseconds
-def current_epoch_microseconds():
-    return int(time.time() * 1000 * 1000)
-
-
-# Telemetry data.
-# - For unstructured telemetry, the content can be arbitrary.
-# - For structured telemetry, it must match the Model/Adapter.
-# - For structured telemetry in the default format, if a "time" property is
-#     specified, it must be an epoch time in microseconds and will override the
-#     "time_observed" property.
-# - The same applies to structured telemetry in a custom format, but the
-#   mapping must be defined in the adapter.
-#
-# The sample telemetry below is compatible with all three Digital Twins created
-# in the "Manage Digital Twins" section of this repository.
-telemetry_data = {
-    "time": 0,
-    "sht_temperature": 23.8,
-    "qmp_temperature": 24.4,
-    "humidity": 56.1,
-    "pressure": 1012.2,
-    "count": 0,
-}
 
 # TLS/SSL configuration
 tls = {
@@ -53,13 +34,15 @@ tls = {
     "keyfile": config.client_key,
 }
 
+telemetry = environmental_sensor_simulator.EnvironmentalSensorSimulator(
+    time_format=config.time_format
+)
+
 for count in range(1, config.message_count + 1):
     print(f"Sending message #{count}")
-    telemetry_data["time"] = current_epoch_microseconds()
-    telemetry_data["count"] = count
     publish.single(
         topic=config.iot_endpoint,
-        payload=json.dumps(telemetry_data),
+        payload=json.dumps(telemetry.get_telemetry()),
         qos=config.qos,
         hostname=config.iot_device_host,
         port=WEBSOCKET_PORT,

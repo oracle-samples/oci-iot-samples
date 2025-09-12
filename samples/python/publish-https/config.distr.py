@@ -10,6 +10,8 @@ iot_device_host = "<Device Host>"
 # The IoT endpoint can be any value, similar to the MQTT topic.
 iot_endpoint = "iot/v1/http"
 
+# Format of the "time" field in the payload ("none", "epoch", "iso")
+time_format = "epoch"
 
 ###
 # For basic authentication

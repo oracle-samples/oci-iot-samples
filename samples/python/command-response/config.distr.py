@@ -16,6 +16,9 @@ message_delay = 10
 # MQTT client id
 client_id = "your_device_name"
 
+# Format of the "time" field in the payload ("none", "epoch", "iso")
+time_format = "epoch"
+
 # Quality of Service
 qos = 1
 

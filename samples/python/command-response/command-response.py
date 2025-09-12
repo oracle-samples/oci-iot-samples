@@ -11,32 +11,27 @@ DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 """
 
 import json
+import os
 import sys
 import threading
 import time
 
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, "shared"))
+)
+
 import config
+import environmental_sensor_simulator
 import paho.mqtt.client as mqtt
 
 MQTT_PORT = 8883
+
+shutdown_event = threading.Event()
 
 
 # Get the current UTC time as an epoch value in microseconds.
 def current_epoch_microseconds():
     return int(time.time() * 1000 * 1000)
-
-
-# Telemetry data example.
-telemetry_data = {
-    "time": 0,
-    "sht_temperature": 23.8,
-    "qmp_temperature": 24.4,
-    "humidity": 56.1,
-    "pressure": 1012.2,
-    "count": 0,
-}
-
-shutdown_event = threading.Event()
 
 
 # Callback for MQTT connection event.
@@ -101,15 +96,16 @@ client.loop_start()
 
 # Send telemetry messages.
 try:
+    telemetry = environmental_sensor_simulator.EnvironmentalSensorSimulator(
+        time_format=config.time_format
+    )
     count = 1
     print("Telemetry loop -- Press Ctrl-C to stop.")
     while not shutdown_event.is_set():
         print(f"Sending message #{count}")
-        telemetry_data["time"] = current_epoch_microseconds()
-        telemetry_data["count"] = count
         rc_pub = client.publish(
             topic=config.iot_endpoint,
-            payload=json.dumps(telemetry_data),
+            payload=json.dumps(telemetry.get_telemetry()),
             qos=config.qos,
         )
         rc_pub.wait_for_publish()

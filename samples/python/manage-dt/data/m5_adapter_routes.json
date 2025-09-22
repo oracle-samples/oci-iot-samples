@@ -1,0 +1,20 @@
+[
+  {
+    "condition": "${endpoint(1) == \"iot\"}",
+    "description": "Environment data",
+    "payloadMapping": {
+      "$.count": "$.count",
+      "$.humidity": "$.humidity",
+      "$.pressure": "$.pressure",
+      "$.qmp_temperature": "$.qmp_temperature",
+      "$.sht_temperature": "$.sht_temperature"
+    }
+  },
+  {
+    "condition": "*",
+    "description": "Default condition",
+    "payloadMapping": {
+      "$.system": "$"
+    }
+  }
+]

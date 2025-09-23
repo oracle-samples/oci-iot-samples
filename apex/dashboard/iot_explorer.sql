@@ -295,3 +295,639 @@ create or replace view iot_hierarchy
   start with parent_id is null
   connect BY parent_id = prior id
 ;
+
+
+--Creat table IOT_CONFIG to hold JSON configuration data
+create table if not exists "IOT_CONFIG"(
+  "JSON_TOPIC"    varchar2(50) not null,
+  "JSON_CONTENT"  clob,
+  constraint is_json_clob check ( "JSON_CONTENT" is json )
+);
+
+
+-- Inserts record into "IOT_CONFIG" if it does not exist containing basic json data
+declare
+  record_exists number;
+  begin
+    select  count(*) 
+    into    record_exists
+    from    iot_config 
+    where   json_topic = 'IOT_CONFIG';
+    
+    if record_exists = 0 then
+      insert into iot_config(json_topic,json_content)
+      values('IOT_CONFIG','{
+          "credentials":null,
+          "tenancy_ocid":null,
+          "tenancy_name":null,
+          "tenancy_region":null,
+          "iot_compartment":null,
+          "vault_ocid":null,
+          "vault_master_key":null,
+          "certificate_authority":null}'
+      );
+      commit;
+    end if;
+end;
+/
+
+
+create or replace package "IOT_APEX" as
+  function clob_to_blob(p_clob clob, p_charset_id  number default null) return blob;
+
+  function cred_chk( p_cred_name varchar2 ) return varchar2;
+
+  function iot_config return json_object_t;
+
+end "IOT_APEX";
+/
+
+create or replace package body "IOT_APEX" as
+
+  function "CLOB_TO_BLOB"(p_clob clob, p_charset_id  number default null) 
+    return blob 
+    is
+      v_blob blob;
+      v_offset number := 1;
+      v_amount number;
+      v_charset_id number := nvl(p_charset_id, dbms_lob.default_csid);
+      v_lang_context number := 0;
+      v_warning number;
+    BEGIN
+      v_amount := dbms_lob.getlength(p_clob);
+      dbms_lob.createtemporary(v_blob, TRUE);
+      dbms_lob.converttoblob(v_blob, p_clob, v_amount, v_offset, v_offset, v_charset_id, v_lang_context, v_warning);
+      RETURN v_blob;
+  end;
+
+
+  function "CRED_CHK"( p_cred_name varchar2 )
+    return varchar2
+    is
+    v_return DBMS_CLOUD_TYPES.resp;
+    begin 
+    v_return := DBMS_CLOUD.SEND_REQUEST(
+              credential_name    => p_cred_name,
+              uri                => 'https://identity.eu-frankfurt-1.oci.oraclecloud.com/20160918/regions',
+              method             => 'GET');
+    return 'GOOD';
+    EXCEPTION
+      WHEN OTHERS THEN
+        IF SQLCODE = -20401 THEN
+          return 'BAD';
+        ELSE
+           return 'Error: ' || SQLERRM;
+        END IF;
+  end;
+
+
+  function "IOT_CONFIG" 
+    return json_object_t
+    is
+    v_return json_object_t;
+    v_clob clob;
+    begin
+      select  i.json_content
+      into    v_clob
+      from    iot_config i
+      where   json_topic = 'IOT_CONFIG';
+
+      v_return := json_object_t.parse(v_clob);
+
+      return v_return;
+
+    exception
+      when others then
+        dbms_output.put_line('Error: ' || SQLERRM);
+
+  end;
+
+end "IOT_APEX";
+/
+
+-- Create or replace the IOT_INFO package
+CREATE OR REPLACE PACKAGE "IOT_INFO" AS
+
+  /*
+    This code is a package that provides a set of functions to interact with the 
+    Oracle IoT Platform API. The functions retrieve various types of IoT-related data, 
+    such as domain groups, domain group connections, domain connections, and domains. 
+    The data is retrieved using the DBMS_CLOUD.SEND_REQUEST function, which sends a 
+    GET request to the Oracle IoT Platform API. The response is then parsed using the 
+    JSON_TABLE function, and the results are piped to the caller. The package also 
+    includes overloaded functions that retrieve data without requiring the caller to 
+    specify the compartment ID, credential name, and region. These functions retrieve 
+    the required information from the IOT_CONFIG table.
+  */
+
+  -- Define a record type to hold IoT domain group information
+  TYPE dom_grp_rec IS RECORD(
+      id VARCHAR2(200), 
+      compartmentId VARCHAR2(300), 
+      displayName VARCHAR2(300), 
+      grp_description VARCHAR2(300), 
+      lifecycleState VARCHAR2(50), 
+      timeCreated VARCHAR2(50), 
+      timeUpdated VARCHAR2(50)
+  );
+
+  -- Define a table type to hold a collection of dom_grp_rec records
+  TYPE dom_grp_tbl IS TABLE OF dom_grp_rec;
+
+  -- Define a record type to hold IoT domain group connection information
+  TYPE dom_grp_conn_rec IS RECORD(
+      id VARCHAR2(200), 
+      compartmentId VARCHAR2(300), 
+      displayName VARCHAR2(300), 
+      lifecycleState VARCHAR2(50), 
+      datahost VARCHAR2(300), 
+      dbConnectionString VARCHAR2(300), 
+      dbTokenScope VARCHAR2(300), 
+      timeCreated VARCHAR2(50), 
+      timeUpdated VARCHAR2(50)
+  );
+
+  -- Define a table type to hold a collection of dom_grp_conn_rec records
+  TYPE dom_grp_conn_tbl IS TABLE OF dom_grp_conn_rec;
+
+  -- Define a record type to hold IoT domain connection information
+  TYPE dom_conn_rec IS RECORD(
+      id VARCHAR2(200), 
+      compartmentId VARCHAR2(300), 
+      displayName VARCHAR2(300), 
+      lifecycleState VARCHAR2(50), 
+      deviceHost VARCHAR2(300), 
+      iotDomainGroupId VARCHAR2(300), 
+      retentRawData number,
+      retentRejectedData number,
+      retentHistorizedData number,
+      retentRawCommandData number,
+      timeCreated VARCHAR2(50), 
+      timeUpdated VARCHAR2(50)
+  );
+
+  -- Define a table type to hold a collection of dom_conn_rec records
+  TYPE dom_conn_tbl IS TABLE OF dom_conn_rec;
+
+  -- Define a record type to hold IoT domain information
+  TYPE dom_rec IS RECORD(
+      id VARCHAR2(200), 
+      iotDomainGroupId VARCHAR2(300), 
+      compartmentId VARCHAR2(300), 
+      displayName VARCHAR2(300), 
+      dom_desc VARCHAR2(300), 
+      lifecycleState VARCHAR2(50),
+      timeCreated VARCHAR2(50), 
+      timeUpdated VARCHAR2(50)
+  );
+
+  -- Define a table type to hold a collection of dom_rec records
+  TYPE dom_tbl IS TABLE OF dom_rec;
+
+  -- Function to retrieve IoT domain groups with specified compartment ID, credential name, and region
+  FUNCTION get_dom_grp(p_compartment_id VARCHAR2, p_cred_name VARCHAR2, p_region VARCHAR2) RETURN dom_grp_tbl PIPELINED;
+
+  -- Function to retrieve all IoT domain groups
+  FUNCTION get_dom_grp RETURN dom_grp_tbl PIPELINED;
+
+  -- Function to retrieve IoT domain group connections with specified domain group ID, credential name, and region
+  FUNCTION get_dom_grp_conn(p_dom_grp_id VARCHAR2, p_cred_name VARCHAR2, p_region VARCHAR2) RETURN dom_grp_conn_tbl PIPELINED;
+
+  -- Function to retrieve all IoT domain group connections
+  FUNCTION get_dom_grp_conn RETURN dom_grp_conn_tbl PIPELINED;
+
+  -- Function to retrieve IoT domain connections with specified domain ID, credential name, and region
+  FUNCTION get_dom_conn(p_dom_id VARCHAR2, p_cred_name VARCHAR2, p_region VARCHAR2) RETURN dom_conn_tbl PIPELINED;
+
+  -- Function to retrieve all IoT domain connections
+  FUNCTION get_dom_conn RETURN dom_conn_tbl PIPELINED;
+
+  -- Function to retrieve IoT domains with specified compartment ID, credential name, and region
+  FUNCTION get_dom(p_compartment_id VARCHAR2, p_cred_name VARCHAR2, p_region VARCHAR2) RETURN dom_tbl PIPELINED;
+
+  -- Function to retrieve all IoT domains
+  FUNCTION get_dom RETURN dom_tbl PIPELINED;
+
+END;
+/
+
+-- Create or replace the IOT_INFO package body
+CREATE OR REPLACE PACKAGE BODY "IOT_INFO" AS
+
+  -- Function to retrieve IoT domain groups with specified compartment ID, credential name, and region
+  FUNCTION get_dom_grp(p_compartment_id VARCHAR2, p_cred_name VARCHAR2, p_region VARCHAR2)
+    RETURN dom_grp_tbl
+    PIPELINED IS
+
+    -- Variables to hold the response from the DBMS_CLOUD.SEND_REQUEST function
+    v_return DBMS_CLOUD_TYPES.resp;
+    v_clob CLOB;
+    v_json JSON;
+
+    BEGIN
+
+      -- Send a GET request to the Oracle IoT Cloud API to retrieve IoT domain groups
+      v_return := DBMS_CLOUD.SEND_REQUEST(
+          credential_name    => p_cred_name,
+          uri                => 'https://iot.'||p_region||'.oci.oraclecloud.com/20250531/iotDomainGroups?compartmentId='||p_compartment_id|| '&limit=100',
+          method             => 'GET'
+      );
+
+      -- Get the response text from the v_return object
+      v_clob := DBMS_CLOUD.GET_RESPONSE_TEXT(resp => v_return);
+
+      -- Parse the JSON response and pipe the results to the caller
+            FOR json_rec IN (
+          SELECT 
+              a.dom_grp_ocid, 
+              a.compartmentId, 
+              a.displayName, 
+              a.dom_grp_desc, 
+              a.lifecycleState, 
+              a.timeCreated, 
+              a.timeUpdated
+          FROM 
+              JSON_TABLE(
+                  v_clob,
+                  '$.items[*]' COLUMNS (
+                      dom_grp_ocid VARCHAR PATH '$.id',
+                      compartmentId VARCHAR PATH '$.compartmentId',
+                      displayName VARCHAR PATH '$.displayName',
+                      dom_grp_desc VARCHAR PATH '$.description',
+                      lifecycleState VARCHAR PATH '$.lifecycleState',
+                      timeCreated VARCHAR PATH '$.timeCreated',
+                      timeUpdated VARCHAR PATH '$.timeUpdated'
+                  )
+              ) a
+      ) LOOP 
+          PIPE ROW (dom_grp_rec(json_rec.dom_grp_ocid, json_rec.compartmentId, json_rec.displayName, json_rec.dom_grp_desc, json_rec.lifecycleState,json_rec.timeCreated, json_rec.timeUpdated));
+      END LOOP;
+
+      RETURN;
+
+    EXCEPTION
+      WHEN OTHERS THEN
+          -- Log any errors that occur during the execution of this function
+          DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+
+  END;
+
+  -- Function to retrieve all IoT domain groups
+  FUNCTION get_dom_grp
+    RETURN dom_grp_tbl
+    PIPELINED IS
+
+    -- Variables to hold the response from the DBMS_CLOUD.SEND_REQUEST function
+    v_return DBMS_CLOUD_TYPES.resp;
+    v_clob CLOB;
+    v_json JSON;
+    v_config json_object_t;
+
+    BEGIN
+
+      -- Retrieve the compartment ID, credential name, and region from the IOT_CONFIG table
+      v_config := iot_apex.iot_config;
+      
+      -- Send a GET request to the Oracle IoT Cloud API to retrieve IoT domain groups
+      v_return := DBMS_CLOUD.SEND_REQUEST(
+          credential_name    => v_config.get_string('credentials'),
+          uri                => 'https://iot.'||v_config.get_string('tenancy_region')||'.oci.oraclecloud.com/20250531/iotDomainGroups?compartmentId='||v_config.get_string('iot_compartment'),
+          method             => 'GET'
+      );
+
+      -- Get the response text from the v_return object
+      v_clob := DBMS_CLOUD.GET_RESPONSE_TEXT(resp => v_return);
+
+      -- Parse the JSON response and pipe the results to the caller
+      FOR json_rec IN (
+          SELECT 
+              a.dom_grp_ocid, 
+              a.compartmentId, 
+              a.displayName, 
+              a.dom_grp_desc, 
+              a.lifecycleState, 
+              a.timeCreated, 
+              a.timeUpdated
+          FROM 
+              JSON_TABLE(
+                  v_clob,
+                  '$.items[*]' COLUMNS (
+                      dom_grp_ocid VARCHAR PATH '$.id',
+                      compartmentId VARCHAR PATH '$.compartmentId',
+                      displayName VARCHAR PATH '$.displayName',
+                      dom_grp_desc VARCHAR PATH '$.description',
+                      lifecycleState VARCHAR PATH '$.lifecycleState',
+                      timeCreated VARCHAR PATH '$.timeCreated',
+                      timeUpdated VARCHAR PATH '$.timeUpdated'
+                  )
+              ) a
+      ) LOOP 
+          PIPE ROW (dom_grp_rec(json_rec.dom_grp_ocid, json_rec.compartmentId, json_rec.displayName, json_rec.dom_grp_desc, json_rec.lifecycleState, json_rec.timeCreated, json_rec.timeUpdated));
+      END LOOP;
+
+      RETURN;
+
+    EXCEPTION
+      WHEN OTHERS THEN
+          -- Log any errors that occur during the execution of this function
+          DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+
+  END;
+
+  -- Other functions are implemented similarly...
+
+  FUNCTION get_dom_grp_conn(p_dom_grp_id varchar2, p_cred_name varchar2, p_region varchar2)
+    RETURN dom_grp_conn_tbl
+    PIPELINED IS
+
+    v_return DBMS_CLOUD_TYPES.resp;
+    v_clob clob;
+    v_json json;
+
+    BEGIN
+
+      v_return := DBMS_CLOUD.SEND_REQUEST(
+          credential_name    => p_cred_name,
+          uri                => 'https://iot.'||p_region||'.oci.oraclecloud.com/20250531/iotDomainGroups/'||p_dom_grp_id,
+          method             => 'GET');
+
+      v_clob := 
+          DBMS_CLOUD.GET_RESPONSE_TEXT(
+              resp          => v_return );
+
+      for json_rec in (
+          SELECT A.dom_grp_ocid, A.compartmentId, A.displayName, A.lifecycleState, A.datahost, A.dbConnectionString, A.dbTokenScope, A.timeCreated, A.timeUpdated
+          FROM JSON_TABLE(
+              v_clob
+              , '$' COLUMNS (
+                  dom_grp_ocid VARCHAR PATH '$.id',
+                  compartmentId VARCHAR PATH '$.compartmentId',
+                  displayName VARCHAR PATH '$.displayName',
+                  lifecycleState VARCHAR PATH '$.lifecycleState',
+                  datahost VARCHAR PATH '$.dataHost',
+                  dbConnectionString VARCHAR PATH '$.dbConnectionString',
+                  dbTokenScope VARCHAR PATH '$.dbTokenScope',
+                  timeCreated VARCHAR PATH '$.timeCreated',
+                  timeUpdated VARCHAR PATH '$.timeUpdated'
+              )
+          ) A
+      ) loop 
+          pipe row (dom_grp_conn_rec(json_rec.dom_grp_ocid,json_rec.compartmentId,json_rec.displayName,json_rec.lifecycleState,json_rec.datahost,json_rec.dbConnectionString,json_rec.dbTokenScope,json_rec.timeCreated,json_rec.timeUpdated));
+      end loop;
+
+      RETURN;
+
+      EXCEPTION
+      WHEN OTHERS THEN
+          DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+
+  END;
+
+  FUNCTION get_dom_grp_conn
+    RETURN dom_grp_conn_tbl
+    PIPELINED IS
+
+    v_return DBMS_CLOUD_TYPES.resp;
+    v_clob clob;
+    v_json json;
+    v_config json_object_t;
+
+    BEGIN
+
+      v_config := iot_apex.iot_config;
+
+      for rec in (select * from table(iot_info.get_dom_grp)) loop
+          v_return := DBMS_CLOUD.SEND_REQUEST(
+              credential_name    => v_config.get_string('credentials'),
+              uri                => 'https://iot.'||v_config.get_string('tenancy_region')|| '.oci.oraclecloud.com/20250531/iotDomainGroups/'||rec.id,
+              method             => 'GET');
+
+          v_clob := 
+              DBMS_CLOUD.GET_RESPONSE_TEXT(
+                  resp          => v_return );
+
+          for json_rec in (
+              SELECT A.dom_grp_ocid, A.compartmentId, A.displayName, A.lifecycleState, A.datahost, A.dbConnectionString, A.dbTokenScope, A.timeCreated, A.timeUpdated
+              FROM JSON_TABLE(
+                  v_clob
+                  , '$' COLUMNS (
+                      dom_grp_ocid VARCHAR PATH '$.id',
+                      compartmentId VARCHAR PATH '$.compartmentId',
+                      displayName VARCHAR PATH '$.displayName',
+                      lifecycleState VARCHAR PATH '$.lifecycleState',
+                      datahost VARCHAR PATH '$.dataHost',
+                      dbConnectionString VARCHAR PATH '$.dbConnectionString',
+                      dbTokenScope VARCHAR PATH '$.dbTokenScope',
+                      timeCreated VARCHAR PATH '$.timeCreated',
+                      timeUpdated VARCHAR PATH '$.timeUpdated'
+                  )
+              ) A
+          ) loop 
+              pipe row (dom_grp_conn_rec(json_rec.dom_grp_ocid,json_rec.compartmentId,json_rec.displayName,json_rec.lifecycleState,json_rec.datahost,json_rec.dbConnectionString,json_rec.dbTokenScope,json_rec.timeCreated,json_rec.timeUpdated));
+          end loop;
+
+      end loop;
+
+      RETURN;
+
+      EXCEPTION
+      WHEN OTHERS THEN
+          DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+
+  END;
+
+  FUNCTION get_dom_conn(p_dom_id varchar2, p_cred_name varchar2, p_region varchar2 )
+    RETURN dom_conn_tbl
+    PIPELINED IS
+
+    v_return DBMS_CLOUD_TYPES.resp;
+    v_clob clob;
+
+    BEGIN
+
+      v_return := DBMS_CLOUD.SEND_REQUEST(
+          credential_name    => p_cred_name,
+          uri                => 'https://iot.'||p_region||'.oci.oraclecloud.com/20250531/iotDomains/'||p_dom_id,
+          method             => 'GET');
+
+      v_clob := 
+          DBMS_CLOUD.GET_RESPONSE_TEXT(
+              resp          => v_return );
+
+      for json_rec in (
+              select a.dom_ocid, a.iotDomainGroupId, a.compartmentId, a.displayName, a.lifecycleState, a.deviceHost, a.timeCreated, a.timeUpdated
+              from json_table(
+                  v_clob
+                  , '$' COLUMNS (
+                      dom_ocid VARCHAR PATH '$.id',
+                      compartmentId VARCHAR PATH '$.compartmentId',
+                      displayName VARCHAR PATH '$.displayName',
+                      lifecycleState VARCHAR PATH '$.lifecycleState',
+                      deviceHost VARCHAR PATH '$.deviceHost',
+                      iotDomainGroupId VARCHAR PATH '$.iotDomainGroupId',
+                      timeCreated VARCHAR PATH '$.timeCreated',
+                      timeUpdated VARCHAR PATH '$.timeUpdated'
+                  )
+              ) A
+          ) loop 
+              pipe row (dom_conn_rec(json_rec.dom_ocid,json_rec.compartmentId,json_rec.displayName,json_rec.lifecycleState,json_rec.deviceHost,json_rec.iotDomainGroupId,json_rec.timeCreated,json_rec.timeUpdated));
+          end loop;
+
+      RETURN;
+
+      EXCEPTION
+      WHEN OTHERS THEN
+          DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+
+  END;
+
+  FUNCTION get_dom_conn
+    RETURN dom_conn_tbl
+    PIPELINED IS
+
+    v_return DBMS_CLOUD_TYPES.resp;
+    v_clob clob;
+    v_config json_object_t;
+
+    BEGIN
+
+      v_config := iot_apex.iot_config;
+
+      for rec in ( select * from table(iot_info.get_dom) ) loop
+
+          v_return := DBMS_CLOUD.SEND_REQUEST(
+              credential_name    => v_config.get_string('credentials'),
+              uri                => 'https://iot.'||v_config.get_string('tenancy_region')|| '.oci.oraclecloud.com/20250531/iotDomains/'||rec.id,
+              method             => 'GET');
+
+          v_clob := 
+              DBMS_CLOUD.GET_RESPONSE_TEXT(
+                  resp          => v_return );
+
+          for json_rec in (
+              select a.dom_ocid, a.iotDomainGroupId, a.compartmentId, a.displayName, a.lifecycleState, a.deviceHost,a.retentRawData, a.retentRejectedData, a.retentHistorizedData, a.retentRawCommandData, a.timeCreated, a.timeUpdated
+              from json_table(
+                  v_clob
+                  , '$' COLUMNS (
+                      dom_ocid VARCHAR PATH '$.id',
+                      compartmentId VARCHAR PATH '$.compartmentId',
+                      displayName VARCHAR PATH '$.displayName',
+                      lifecycleState VARCHAR PATH '$.lifecycleState',
+                      deviceHost VARCHAR PATH '$.deviceHost',
+                      iotDomainGroupId VARCHAR PATH '$.iotDomainGroupId',
+                      retentRawData number PATH '$.dataRetentionPeriodsInDays.rawData',
+                      retentRejectedData number PATH '$.dataRetentionPeriodsInDays.rejectedData',
+                      retentHistorizedData number PATH '$.dataRetentionPeriodsInDays.historizedData',
+                      retentRawCommandData number PATH '$.dataRetentionPeriodsInDays.rawCommandData',
+                      timeCreated VARCHAR PATH '$.timeCreated',
+                      timeUpdated VARCHAR PATH '$.timeUpdated'
+                  )
+              ) A
+          ) loop 
+              pipe row (dom_conn_rec(json_rec.dom_ocid,json_rec.compartmentId,json_rec.displayName,json_rec.lifecycleState,json_rec.deviceHost,json_rec.iotDomainGroupId,json_rec.retentRawData,json_rec.retentRejectedData,json_rec.retentHistorizedData,json_rec.retentRawCommandData,json_rec.timeCreated,json_rec.timeUpdated));
+          end loop;
+
+      end loop;
+
+      RETURN;
+
+      EXCEPTION
+      WHEN OTHERS THEN
+          DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+
+  END;
+
+  FUNCTION get_dom(p_compartment_id varchar2, p_cred_name varchar2, p_region varchar2)
+    RETURN dom_tbl
+    PIPELINED IS
+
+    v_return DBMS_CLOUD_TYPES.resp;
+    v_clob clob;
+    v_json json;
+
+    BEGIN
+
+      v_return := DBMS_CLOUD.SEND_REQUEST(
+          credential_name    => p_cred_name,
+          uri                => 'https://iot.'||p_region||'.oci.oraclecloud.com/20250531/iotDomains?compartmentId='||p_compartment_id,
+          method             => 'GET');
+
+      v_clob := 
+          DBMS_CLOUD.GET_RESPONSE_TEXT(resp          => v_return );
+
+      for json_rec in (
+          SELECT a.dom_ocid, a.iotDomainGroupId, a.compartmentId, a.displayName, a.dom_desc, a.lifecycleState,  a.timeCreated, a.timeUpdated
+          FROM JSON_TABLE(
+              v_clob
+              , '$.items[*]' COLUMNS (
+                  dom_ocid VARCHAR PATH '$.id',
+                  iotDomainGroupId VARCHAR PATH '$.iotDomainGroupId',
+                  compartmentId VARCHAR PATH '$.compartmentId',
+                  displayName VARCHAR PATH '$.displayName',
+                  dom_desc varchar2 path '$.description',
+                  lifecycleState VARCHAR PATH '$.lifecycleState',
+                  timeCreated VARCHAR PATH '$.timeCreated',
+                  timeUpdated VARCHAR PATH '$.timeUpdated'
+              )
+          ) A 
+      ) loop 
+          pipe row (dom_rec(json_rec.dom_ocid,json_rec.iotDomainGroupId,json_rec.compartmentId,json_rec.displayName,json_rec.dom_desc,json_rec.lifecycleState,json_rec.timeCreated,json_rec.timeUpdated));
+      end loop;
+
+      RETURN;
+
+      EXCEPTION
+      WHEN OTHERS THEN
+          DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+
+  END;
+
+  FUNCTION get_dom
+    RETURN dom_tbl
+    PIPELINED IS
+
+    v_return DBMS_CLOUD_TYPES.resp;
+    v_clob clob;
+    v_json json;
+    v_config json_object_t;
+
+    BEGIN
+
+      v_config := iot_apex.iot_config;
+
+      v_return := DBMS_CLOUD.SEND_REQUEST(
+            credential_name    => v_config.get_string('credentials'),
+            uri                => 'https://iot.'||v_config.get_string('tenancy_region')|| '.oci.oraclecloud.com/20250531/iotDomains?compartmentId='||v_config.get_string('iot_compartment'),
+            method             => 'GET');
+
+        v_clob := DBMS_CLOUD.GET_RESPONSE_TEXT(resp=> v_return );
+
+        for json_rec in (
+            SELECT a.dom_ocid, a.iotDomainGroupId, a.compartmentId, a.displayName, a.dom_desc, a.lifecycleState, a.timeCreated, a.timeUpdated
+            FROM JSON_TABLE(
+                v_clob
+                , '$.items[*]' COLUMNS (
+                    dom_ocid VARCHAR PATH '$.id',
+                    iotDomainGroupId VARCHAR PATH '$.iotDomainGroupId',
+                    compartmentId VARCHAR PATH '$.compartmentId',
+                    displayName VARCHAR PATH '$.displayName',
+                    dom_desc varchar2 path '$.description',
+                    lifecycleState VARCHAR PATH '$.lifecycleState',
+                    timeCreated VARCHAR PATH '$.timeCreated',
+                    timeUpdated VARCHAR PATH '$.timeUpdated'
+                )
+            ) A 
+        ) loop 
+            pipe row (dom_rec(json_rec.dom_ocid,json_rec.iotDomainGroupId,json_rec.compartmentId,json_rec.displayName,json_rec.dom_desc,json_rec.lifecycleState,json_rec.timeCreated,json_rec.timeUpdated));
+        end loop;
+
+        RETURN;
+
+        EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+
+    END;
+
+END;
+/

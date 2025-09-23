@@ -13,6 +13,27 @@ This APEX application serves as a dashboard for monitoring IoT devices and messa
 Documentation about creating APEX users can be found in the
 [APEX Administration Guide](https://docs.oracle.com/en/database/oracle/apex/24.2/aeadm/managing-users-across-an-application-express-instance.html#GUID-CE23292D-05D1-4E79-BF40-8BC31E74E6C8).
 
+### Optional
+
+It is recommended that you create an OCI user and group that IoT Explorer can use to
+access OCI REST APIs. However, any user with sufficient access will suffice.
+
+Begin by creating an OCI user group, then a user assigned to that group. Once the
+user is created, an email will be sent to the specified address. Follow the link and
+complete account activation.
+
+While logged in as the new user, go to the user profile and set up an API key for
+the user. Save the private key and the configuration information once the key is
+created.
+
+Then, as the admin-level user, create a new policy and set the following.
+
+```text
+Allow group <grp_name> to manage iot-family in compartment <cmp_name>
+Allow group <grp_name> to manage iot-domain-family in compartment <cmp_name>
+Allow group <grp_name> to manage iot-digital-twin-family in compartment <cmp_name>
+```
+
 ## Setup
 
 After completing your IoT Platform setup, you should be able to access your APEX
@@ -58,7 +79,7 @@ The following will walk you through the installation of the IoT Explorer
 application.
 
 1. Click "Import".
-2. Select the F102.sql file.
+2. Select the F103.sql file.
 3. Click the "Next" button.
 4. Set the "Parsing Schema" to your workspace (e.g., ****************__wksp).
 5. You may either reuse application number 105 or allow APEX to auto-assign a new
@@ -87,3 +108,8 @@ as well as telemetry sent to the platform (raw, rejected, and historized data).
 
 The "IoT Tree" page organizes the IoT objects and telemetry received by each object
 in a hierarchy starting with models, next adapters, then digital twins.
+
+The 'Settings' page allows you to enter a user's credentials and information
+about your tenancy.  This information, along with OCI policies allows the
+application to make the REST API calls to the IoT service. Any features requiring a
+value that has not been set will display a message to that effect.

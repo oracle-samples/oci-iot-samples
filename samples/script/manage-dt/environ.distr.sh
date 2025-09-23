@@ -20,12 +20,11 @@ IOT_DOMAIN_ID="ocid1.iotdomain...."
 # Optional: ORDS Data Access
 ###
 
-# The Domain Group Short ID is the first element of the dataHost property of
-# the Domain Group.
+# The Domain Group dataHost.
 # You can retrieve it with the following command:
 # oci iot domain-group get --iot-domain-group-id <IoT Domain Group OCID> \
 #   --query 'data."data-host"' --raw-output
-DOMAIN_GROUP_SHORT_ID=
+DOMAIN_GROUP_DATA_HOST=
 
 # The Domain Short ID is the first element of the deviceHost property of the
 # Domain.
@@ -52,9 +51,8 @@ IAM_PASSWORD=
 ###
 # IoT OCI Endpoints - Do not change
 ###
-DOMAIN_REGION=us-ashburn-1
-if [[ -n ${DOMAIN_GROUP_SHORT_ID} && -n ${DOMAIN_SHORT_ID} && -n ${IAM_DOMAIN_URL} ]]; then
-    IOT_DATA_ENDPOINT="https://${DOMAIN_GROUP_SHORT_ID}.data.iot.${DOMAIN_REGION}.oci.oraclecloud.com/ords/${DOMAIN_SHORT_ID}/20250531"
+if [[ -n ${DOMAIN_GROUP_DATA_HOST} && -n ${DOMAIN_SHORT_ID} && -n ${IAM_DOMAIN_URL} ]]; then
+    IOT_DATA_ENDPOINT="https://${DOMAIN_GROUP_DATA_HOST}/ords/${DOMAIN_SHORT_ID}/20250531"
     OAUTH_ENDPOINT="${IAM_DOMAIN_URL}/oauth2/v1/token"
 fi
 

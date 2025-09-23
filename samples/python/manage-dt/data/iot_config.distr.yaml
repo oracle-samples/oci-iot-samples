@@ -1,0 +1,63 @@
+# Manage-dt: Configuration file.
+#
+# Copyright (c) 2025 Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at
+# https://oss.oracle.com/licenses/upl
+#
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+
+iot:
+  # IoT Domain OCID
+  domain_id: <IoT Domain OCID>
+
+identity:
+  # Confidential Application Client ID and Secret
+  # You can find these in the OCI Console:
+  # Identity > Domain > Your Domain > Integrated App > OAuth
+  app_client_id: <Application Client Id>
+  app_client_secret: <Application Client Secret>
+
+  # The OCI user and password in the Identity Domain where the Confidential
+  # Application is created. (Typically, this will be your OCI username and password,
+  # unless the application is created in a separate Identity domain.)
+  user: <OCI User>
+  password: <OCI Password>
+
+# Declare "environment variables" which can be used for the digital twins definitions below
+environ:
+  # A short ID used to uniquely identify the resources created
+  device_key: <My Id>
+  # The OCID of a Vault Secret which can be used for all Digital Twins
+  auth_id: <Secret OCID>
+
+digital_twins:
+  unstructured:
+    # Unstructured Digital Twin
+    # You can send any telemetry to this Digital Twin.
+    device_name: ${device_key}-01
+    external_key: ${device_key}-01
+    auth_id: ${auth_id}
+
+  default-adapter:
+    # M5 Stack with EnvIII sensor - Structured telemetry with Adapter in default format
+    # Payload should match the expected telemetry format as described by the model.
+    device_name: ${device_key}-m5-env-dflt-01
+    model_name: dtmi:com:oracle:${device_key}:m5:env:dflt;1
+    model_description: M5 with EnvIII sensors (${device_key}-default)
+    model_dtdl: m5_model_default.json
+    adapter_name: ${device_key}-m5-env-dflt-adapter
+    external_key: ${device_key}-m5-env-dflt-01
+    auth_id: ${auth_id}
+
+  custom-adapter:
+    # M5 Stack with EnvIII sensor - Structured telemetry with Adapter in custom format
+    # Payload should match the expected telemetry format as described by the adapter.
+    device_name: ${device_key}-m5-env-cstm-01
+    model_name: dtmi:com:oracle:${device_key}:m5:env:cstm;1
+    model_description: M5 with EnvIII sensors (${device_key}-custom)
+    model_dtdl: m5_model_custom.json
+    adapter_name: ${device_key}-m5-env-cstm-adapter
+    adapter_envelope: m5_adapter_envelope.json
+    adapter_routes: m5_adapter_routes.json
+    external_key: ${device_key}-m5-env-cstm-01
+    auth_id: ${auth_id}

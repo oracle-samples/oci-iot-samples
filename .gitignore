@@ -5,6 +5,8 @@
 # Config files
 environ.sh
 config.py
+iot_config.yaml
+data_access.json
 
 # Certificates
 *.pem

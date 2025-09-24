@@ -11,7 +11,7 @@
 
 ### Changes
 
-- Direct link from IoT Platform object listings to recent activity
+- Direct link from OCI IoT Platform object listings to recent activity
 
 ### Bug Fixes
 
@@ -24,7 +24,7 @@
 Features
 
 - Traffic monitoring dashboard
-- Listing of IoT Platform objects (models, adapters, and instances)
+- Listing of OcI IoT Platform objects (models, adapters, and instances)
 - Reports of Raw Data, Errors, and Historized data
-- Dynamic tree structure of IoT Platform objects, their relationships, and most
+- Dynamic tree structure of OCI IoT Platform objects, their relationships, and most
 recent data collected

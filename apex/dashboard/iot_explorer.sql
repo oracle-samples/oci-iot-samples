@@ -297,7 +297,7 @@ create or replace view iot_hierarchy
 ;
 
 
---Creat table IOT_CONFIG to hold JSON configuration data
+--Create table IOT_CONFIG to hold JSON configuration data
 create table if not exists "IOT_CONFIG"(
   "JSON_TOPIC"    varchar2(50) not null,
   "JSON_CONTENT"  clob,
@@ -410,10 +410,10 @@ CREATE OR REPLACE PACKAGE "IOT_INFO" AS
 
   /*
     This code is a package that provides a set of functions to interact with the 
-    Oracle IoT Platform API. The functions retrieve various types of IoT-related data, 
+    OcI IoT Platform API. The functions retrieve various types of IoT-related data, 
     such as domain groups, domain group connections, domain connections, and domains. 
     The data is retrieved using the DBMS_CLOUD.SEND_REQUEST function, which sends a 
-    GET request to the Oracle IoT Platform API. The response is then parsed using the 
+    GET request to the OcI IoT Platform API. The response is then parsed using the 
     JSON_TABLE function, and the results are piped to the caller. The package also 
     includes overloaded functions that retrieve data without requiring the caller to 
     specify the compartment ID, credential name, and region. These functions retrieve 
@@ -526,7 +526,7 @@ CREATE OR REPLACE PACKAGE BODY "IOT_INFO" AS
 
     BEGIN
 
-      -- Send a GET request to the Oracle IoT Cloud API to retrieve IoT domain groups
+      -- Send a GET request to the OcI IoT Cloud API to retrieve IoT domain groups
       v_return := DBMS_CLOUD.SEND_REQUEST(
           credential_name    => p_cred_name,
           uri                => 'https://iot.'||p_region||'.oci.oraclecloud.com/20250531/iotDomainGroups?compartmentId='||p_compartment_id|| '&limit=100',
@@ -588,7 +588,7 @@ CREATE OR REPLACE PACKAGE BODY "IOT_INFO" AS
       -- Retrieve the compartment ID, credential name, and region from the IOT_CONFIG table
       v_config := iot_apex.iot_config;
       
-      -- Send a GET request to the Oracle IoT Cloud API to retrieve IoT domain groups
+      -- Send a GET request to the OcI IoT Cloud API to retrieve IoT domain groups
       v_return := DBMS_CLOUD.SEND_REQUEST(
           credential_name    => v_config.get_string('credentials'),
           uri                => 'https://iot.'||v_config.get_string('tenancy_region')||'.oci.oraclecloud.com/20250531/iotDomainGroups?compartmentId='||v_config.get_string('iot_compartment'),

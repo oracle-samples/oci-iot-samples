@@ -5,9 +5,7 @@ This APEX application serves as a dashboard for monitoring IoT devices and messa
 
 ## Prerequisites
 
-1. Complete setup of Iot Platform including:
-    1. Configure an IoT Domain's Access to REST
-    2. Configure an IoT Domain's Access to APEX
+1. Complete setup of Iot Platform including access to APEX:
 2. Create an APEX user to install and access the application.
 
 Documentation about creating APEX users can be found in the
@@ -15,16 +13,11 @@ Documentation about creating APEX users can be found in the
 
 ### Optional
 
-It is recommended that you create an OCI user and group that IoT Explorer can use to
+It is recommended that you create an OCI user and group that OCI IoT Explorer can use to
 access OCI REST APIs. However, any user with sufficient access will suffice.
 
-Begin by creating an OCI user group, then a user assigned to that group. Once the
-user is created, an email will be sent to the specified address. Follow the link and
-complete account activation.
-
-While logged in as the new user, go to the user profile and set up an API key for
-the user. Save the private key and the configuration information once the key is
-created.
+1. Begin by creating an OCI user group.  
+2. Next, create a user with an API Key assigned to that group.
 
 Then, as the admin-level user, create a new policy and set the following.
 
@@ -79,10 +72,10 @@ The following will walk you through the installation of the IoT Explorer
 application.
 
 1. Click "Import".
-2. Select the F103.sql file.
+2. Select the iot_explorer.app.sql file.
 3. Click the "Next" button.
 4. Set the "Parsing Schema" to your workspace (e.g., ****************__wksp).
-5. You may either reuse application number 105 or allow APEX to auto-assign a new
+5. You may either reuse the application number or allow APEX to auto-assign a new
 application number.
 6. Click "Install Application".
 

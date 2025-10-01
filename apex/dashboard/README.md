@@ -5,13 +5,27 @@ This APEX application serves as a dashboard for monitoring IoT devices and messa
 
 ## Prerequisites
 
-1. Complete setup of Iot Platform including:
-    1. Configure an IoT Domain's Access to REST
-    2. Configure an IoT Domain's Access to APEX
+1. Complete setup of Iot Platform including access to APEX:
 2. Create an APEX user to install and access the application.
 
 Documentation about creating APEX users can be found in the
 [APEX Administration Guide](https://docs.oracle.com/en/database/oracle/apex/24.2/aeadm/managing-users-across-an-application-express-instance.html#GUID-CE23292D-05D1-4E79-BF40-8BC31E74E6C8).
+
+### Optional
+
+It is recommended that you create an OCI user and group that OCI IoT Explorer can use to
+access OCI REST APIs. However, any user with sufficient access will suffice.
+
+1. Begin by creating an OCI user group.  
+2. Next, create a user with an API Key assigned to that group.
+
+Then, as the admin-level user, create a new policy and set the following.
+
+```text
+Allow group <grp_name> to manage iot-family in compartment <cmp_name>
+Allow group <grp_name> to manage iot-domain-family in compartment <cmp_name>
+Allow group <grp_name> to manage iot-digital-twin-family in compartment <cmp_name>
+```
 
 ## Setup
 
@@ -58,10 +72,10 @@ The following will walk you through the installation of the IoT Explorer
 application.
 
 1. Click "Import".
-2. Select the F102.sql file.
+2. Select the iot_explorer.app.sql file.
 3. Click the "Next" button.
 4. Set the "Parsing Schema" to your workspace (e.g., ****************__wksp).
-5. You may either reuse application number 105 or allow APEX to auto-assign a new
+5. You may either reuse the application number or allow APEX to auto-assign a new
 application number.
 6. Click "Install Application".
 
@@ -87,3 +101,16 @@ as well as telemetry sent to the platform (raw, rejected, and historized data).
 
 The "IoT Tree" page organizes the IoT objects and telemetry received by each object
 in a hierarchy starting with models, next adapters, then digital twins.
+
+The 'Settings' page allows you to enter a user's credentials and information
+about your tenancy.  This information, along with OCI policies allows the
+application to make the REST API calls to the IoT service. Any features requiring a
+value that has not been set will display a message to that effect.
+
+## Removal
+
+To remove the OCI IoT Explorer:
+
+1. Select the application from the APEX Application Builder and click "Delete
+Application" on the left.
+2. Load iot_explorer_teardown.sql into APEX SQL Workshop -> Scripts and run.

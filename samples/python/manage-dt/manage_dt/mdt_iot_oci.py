@@ -85,7 +85,7 @@ def delete_digital_twin_model_by_spec_uri(
     """
     response = client.list_digital_twin_models(
         iot_domain_id=iot_domain_id,
-        digital_twin_model_spec_uri_starts_with=spec_uri,
+        spec_uri_starts_with=spec_uri,
         lifecycle_state="ACTIVE",
     )
     if not response or response.status != 200:

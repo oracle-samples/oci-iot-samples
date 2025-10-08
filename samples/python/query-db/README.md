@@ -3,20 +3,25 @@
 The OCI Internet of Things Platform allows you to connect directly to the
 database storing your Digital Twin definitions and telemetry.
 
-This guide shows how to connect to your IoT database using a Python script.
+The
+[Scenario: Connecting Directly to the IoT Database](https://docs.oracle.com/en-us/iaas/Content/internet-of-things/connect-database.htm)
+section of the documentation shows how to establish a database connection with
+[SQLcl](https://www.oracle.com/database/sqldeveloper/technologies/sqlcl/).
+This guide focuses on how to connect to your IoT database using a Python script.
 
 ## Concepts
 
 Each IoT Domain Group uses an Oracle Autonomous Database, which is shared by
 all IoT Domains in that group.
 
-To access the database, you must ensure that your client IP address is
+To access the database, you must ensure that your client VCN is
 included in the Allow List defined at the IoT Domain Group level –
-[Documentation](.).
+[Documentation](https://docs.oracle.com/en-us/iaas/Content/internet-of-things/connect-database.htm#top__create-vcn).
 
 When connected, to access the database schemas related to a particular IoT
 Domain, the OCI user initiating the connection must be part of one of the
-identity groups listed at the IoT Domain level – [Documentation](.).
+Identity Domain (Dynamic) Groups listed at the IoT Domain level –
+[Documentation](https://docs.oracle.com/en-us/iaas/Content/internet-of-things/connect-database.htm#top__identity-domain).
 
 Database authentication is handled using
 [OCI Identity Database Tokens](https://docs.oracle.com/en/cloud/paas/autonomous-database/serverless/adbsb/iam-access-database.html#GUID-CFC74EAF-E887-4B1F-9E9A-C956BCA0BEA9).
@@ -26,10 +31,6 @@ The user account running the script must be properly configured to retrieve
 ```shell
 oci iam db-token get --scope "urn:oracle:db::id::*"
 ```
-
-While the OCI IoT Platform also supports _Instance Principal_ authentication,
-this example uses the default API Key Authentication configured in the
-`~/.oci/config` file.
 
 The `oracledb` Python module handles token retrieval seamlessly when
 specifying `extra_auth_params=token_based_auth` at connection time.
@@ -63,7 +64,9 @@ Copy `config.distr.py` to `config.py` and set the following variables:
 - `db_connect_string`: The dbConnectionString property of your IoT Domain Group.
 - `db_token_scope`: The dbTokenScope property of your IoT Domain Group.
 - `iot_domain_short_name`: The hostname part of the deviceHost property of your IoT Domain.
-- `oci_profile`: OCI CLI profile to use for token retrieval.
+- `oci_auth_type`: The OCI Authentication type. Must be either "ConfigFileAuthentication"
+   for API Key authentication or "InstancePrincipal".
+- `oci_profile`: OCI CLI profile to use for token retrieval when using API Key authentication.
 - `row_count`: The number of rows retrieved by the sample queries.
 - `thick_mode`: Set to `True` to use the `oracledb` Thick mode driver.
 

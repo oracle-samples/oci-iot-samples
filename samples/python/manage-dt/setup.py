@@ -35,7 +35,7 @@ setup(
     python_requires=">=3.12",
     install_requires=[
         "click~=8.2.0",
-        "oci~=2.158",
+        "oci~=2.0,>=2.161",
         "PyYAML~=6.0.0",
         "requests~=2.32.0",
         "rich~=13.0.0",

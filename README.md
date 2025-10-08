@@ -1,7 +1,7 @@
 # Oracle Internet of Things Platform Samples
 
-This repository provides examples demonstrating how to use the Oracle Internet of Things
-Platform.
+This repository provides examples demonstrating how to use the
+[Oracle Internet of Things Platform](https://docs.oracle.com/en-us/iaas/Content/internet-of-things/).
 
 ## Setup
 
@@ -62,7 +62,7 @@ as well as the messages received.
 ## Documentation
 
 You can find the online documentation for the Oracle Internet of Things Platform at
-[docs.cloud.oracle.com](https://docs.cloud.oracle.com/).
+[docs.cloud.oracle.com](https://docs.oracle.com/en-us/iaas/Content/internet-of-things/).
 
 ## Contributing
 

@@ -85,10 +85,11 @@ dsn = f"""
 
 # Parameters for OCI token-based authentication
 token_based_auth = {
-    "auth_type": "ConfigFileAuthentication",
-    "profile": config.oci_profile,
+    "auth_type": config.oci_auth_type,
     "scope": config.db_token_scope,
 }
+if config.oci_auth_type == "ConfigFileAuthentication":
+    token_based_auth["profile"] = config.oci_profile
 
 extra_connect_params = {}
 if config.thick_mode:

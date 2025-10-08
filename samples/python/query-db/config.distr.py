@@ -16,7 +16,11 @@ db_token_scope = "urn:oracle:db::id::<Compartment OCID>"
 #     jq -r '.'data."device-host"' | split(".")[0]'
 iot_domain_short_name = "<Domain SHort Name>"
 
-# OCI CLI profile to use for token retrieval.
+# OCI Authentication type. Must be either "ConfigFileAuthentication" or "InstancePrincipal"
+# oci_auth_type = "ConfigFileAuthentication"
+oci_auth_type = "InstancePrincipal"
+
+# OCI CLI profile to use for token retrieval when authentication type is "ConfigFileAuthentication"
 oci_profile = os.getenv("OCI_CLI_PROFILE", "DEFAULT")
 
 # Number of rows to retrieve in the sample queries.

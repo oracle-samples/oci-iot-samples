@@ -52,6 +52,7 @@ as well as the messages received.
 | Description                                          | Command Line          | Python       |
 |------------------------------------------------------|:---------------------:|:------------:|
 | IoT from scratch (Setup IoT environment from command line) | [Sample](./samples/script/iot-from-scratch/) |              |
+| IoT from scratch (Setup IoT environment with Terraform   ) | [Terraform Sample](./samples/terraform/iot-from-scratch/) |              |
 | Manage Digital Twins (Create, query, delete). The Python sample demonstrates the use of the OCI Python SDK and the IoT Platform Data API           | [Sample](./samples/script/manage-dt/) | [Sample](./samples/python/manage-dt/) |
 | Publish telemetry (HTTPS - REST API)                 | [Sample](./samples/script/publish-https/) | [Sample](./samples/python/publish-https/)  |
 | Publish telemetry (MQTTS - Secure MQTT)              |                       | [Sample](./samples/python/publish-mqtt/)  |

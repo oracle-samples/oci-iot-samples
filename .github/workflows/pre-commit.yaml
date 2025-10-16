@@ -35,19 +35,53 @@ jobs:
         with:
           node-version: '22.0'
 
+      - name: Add ~/.local/bin directory
+        shell: bash
+        run: |
+          mkdir --parents "${HOME}/.local/bin"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
       - name: Install ShellCheck
         shell: bash
         env:
           SHELLCHECK_VERSION: 'v0.11.0'
         run: |
           echo "Installing ShellCheck..."
-          mkdir --parents "${HOME}/.local/bin"
-          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
           curl --silent --location \
               "https://github.com/koalaman/shellcheck/releases/download/${SHELLCHECK_VERSION}/shellcheck-${SHELLCHECK_VERSION}.linux.x86_64.tar.xz" |
               tar --extract --xz --directory="${HOME}/.local/bin" \
               --strip-components=1 "shellcheck-${SHELLCHECK_VERSION}/shellcheck"
           shellcheck --version
+
+      - name: Set up Terraform
+        env:
+          TERRAFORM_VERSION: '1.13.3'
+          ARCH: amd64
+        run: |
+          echo "Installing Terraform..."
+          OS=$(uname | tr '[:upper:]' '[:lower:]')
+          curl --silent --location --remote-name \
+              https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_${OS}_${ARCH}.zip
+          unzip terraform_${TERRAFORM_VERSION}_${OS}_${ARCH}.zip terraform
+          mv terraform "${HOME}/.local/bin"
+          terraform version
+
+      - name: Install pre-commit-terraform dependencies
+        env:
+          TFLINT_VERSION: 'v0.59.1'
+          TRIVY_VERSION: '0.67.0'
+        shell: bash
+        run: |
+          echo "Installing tflint..."
+          curl --silent --location \
+              https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/tflint_linux_amd64.zip > tflint.zip &&
+              unzip tflint.zip tflint -d "${HOME}/.local/bin" && rm tflint.zip
+          tflint --version
+          echo "Installing trivy..."
+          curl --silent --location \
+              https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz |
+              tar -xz --directory="${HOME}/.local/bin" trivy
+          trivy --version
 
       - name: Install pre-commit
         env:

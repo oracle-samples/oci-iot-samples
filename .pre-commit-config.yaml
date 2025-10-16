@@ -53,6 +53,18 @@ repos:
     hooks:
       - id: markdownlint-cli2
 
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.101.0
+    hooks:
+      - id: terraform_fmt
+        files: ^samples/terraform/
+      - id: terraform_tflint
+        args:
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+        files: ^samples/terraform/
+      - id: terraform_trivy
+        files: ^samples/terraform/
+
   - repo: local
     hooks:
       - id: forbid-binary

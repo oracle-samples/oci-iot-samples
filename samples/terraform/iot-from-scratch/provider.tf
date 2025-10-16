@@ -40,7 +40,6 @@ provider "oci" {
   region = data.oci_identity_tenancy.this.home_region_key
 }
 
-
 data "oci_identity_tenancy" "this" {
   tenancy_id = var.tenancy_id
 }

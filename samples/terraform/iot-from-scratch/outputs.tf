@@ -196,3 +196,20 @@ output "iot_data_access_direct_db_allow_listed_vcn_ids" {
     !var.configure_direct_database_access ? null : data.oci_iot_iot_domain_group.this[0].db_allow_listed_vcn_ids
   )
 }
+
+output "iot_data_access_direct_db_allow_listed_identity_group_names" {
+  description = "The database connection string"
+  value = (
+    !var.configure_direct_database_access ? null : data.oci_iot_iot_domain.this[0].db_allow_listed_identity_group_names
+  )
+}
+
+output "iot_data_access_direct_db_schema_iot" {
+  description = "The database schema with IoT data (read-only)"
+  value       = var.configure_direct_database_access ? "${split(".", oci_iot_iot_domain.this.device_host)[0]}__iot" : null
+}
+
+output "iot_data_access_direct_db_schema_workspace" {
+  description = "The Workspace database schema (read/write)"
+  value       = var.configure_direct_database_access ? "${split(".", oci_iot_iot_domain.this.device_host)[0]}__wksp" : null
+}

@@ -228,7 +228,7 @@ resource "terraform_data" "oci_cli_configure_direct_database_access_db_groups" {
   }
 }
 
-# Re-query domain domain group to get database token scope and connect string
+# Re-query IoT Domain Group to get database token scope and connect string
 # after being configured
 data "oci_iot_iot_domain_group" "this" {
   count = var.configure_direct_database_access ? 1 : 0
@@ -236,5 +236,16 @@ data "oci_iot_iot_domain_group" "this" {
   iot_domain_group_id = oci_iot_iot_domain_group.this.id
   depends_on = [
     terraform_data.oci_cli_configure_direct_database_access_db_vcn
+  ]
+}
+
+# Re-query IoT Domain to list allowlisted Identity Groups for database access
+# after being configured
+data "oci_iot_iot_domain" "this" {
+  count = var.configure_direct_database_access ? 1 : 0
+
+  iot_domain_id = oci_iot_iot_domain.this.id
+  depends_on = [
+    terraform_data.oci_cli_configure_direct_database_access_db_groups
   ]
 }

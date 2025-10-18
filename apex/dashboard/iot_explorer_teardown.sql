@@ -8,9 +8,14 @@
 -- DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 --
 
-drop package IOT_INFO;
-drop package IOT_APEX;
-drop table IOT_CONFIG;
+drop view iot_passwords;
+drop view iot_certs;
+drop view auth_view;
+drop package iot_oci;
+drop package iot_objects;
+drop package iot_info;
+drop package iot_apex;
+drop table iot_config;
 drop view iot_hierarchy;
 drop view iot_stats;
 declare
@@ -62,4 +67,3 @@ declare
 
 end;
 /
-drop function compact_number;

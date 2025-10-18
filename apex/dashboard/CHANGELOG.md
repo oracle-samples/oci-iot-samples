@@ -1,6 +1,24 @@
+<!-- markdownlint-disable MD024 -->
 # IoT Explorer - Release Notes
 
-## September 16th 2025
+## October 17th, 2025
+
+### New Features
+
+- Creation and deletion available for models, adapters, and instances.
+- Secrets and certificates can be created as part of the instance
+  creation form.
+
+### Changes
+
+- DTDL Model D in Adapter and Instance reports links to Model Detail and
+Usage page.
+
+### Bug Fixes
+
+- Report column names and order consistency
+
+## September 16th, 2025
 
 ### New Features
 
@@ -15,16 +33,16 @@
 
 ### Bug Fixes
 
-- Report column names and order consistancy
+- Report column names and order consistency
 
-## August 25th 2025
+## August 25th, 2025
 
-### Inital Release
+### Initial Release
 
 Features
 
 - Traffic monitoring dashboard
-- Listing of OcI IoT Platform objects (models, adapters, and instances)
+- Listing of OCI IoT Platform objects (models, adapters, and instances)
 - Reports of Raw Data, Errors, and Historized data
-- Dynamic tree structure of OCI IoT Platform objects, their relationships, and most
-recent data collected
+- Dynamic tree structure of OCI IoT Platform objects, their relationships, and
+  most recent data collected

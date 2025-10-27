@@ -120,7 +120,7 @@ Run the script:
 Set the path to your client certificate and key in the `client_cert` and `client_key`
 variables of the `config.py` file.
 
-Keep in mind that the `authId` property of your Digital Twin must match the
+Keep in mind that the `externalKey` property of your Digital Twin must match the
 Common Name (CN) of the certificate.
 
 Run the script:

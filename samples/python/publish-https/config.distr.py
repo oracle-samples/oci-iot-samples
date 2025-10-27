@@ -36,7 +36,7 @@ password = "your_device_password"
 #   --certificate-id  <certificate OCID> \
 #   --bundle-type CERTIFICATE_CONTENT_WITH_PRIVATE_KEY |
 #   jq -r '.data."certificate-pem"','.data."private-key-pem"' > client_certificate_bundle.pem
-# Keep in mind that the authId property of your Digital Twin must match the
+# Keep in mind that the externalKey property of your Digital Twin must match the
 # Common Name (CN) of the certificate.
 client_cert = "/path/to/client_certificate.pem"
 client_key = ""

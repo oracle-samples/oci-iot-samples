@@ -52,7 +52,7 @@ oci certificates certificate-bundle get \
   jq -r '.data."private-key-pem"' > client_key.pem
 ```
 
-Keep in mind that the `authId` property of your Digital Twin must match the
+Keep in mind that the `externalKey` property of your Digital Twin must match the
 Common Name (CN) of the certificate.
 
 To publish telemetry:

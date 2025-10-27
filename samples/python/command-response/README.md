@@ -85,7 +85,7 @@ Copy `config.distr.py` to `config.py` and set the following variables:
 - For certificate authentication:
   - Set the path to your client certificate and key in the `client_cert` and `client_key`
     variables.
-  - Keep in mind that the `authId` property of your Digital Twin must match the
+  - Keep in mind that the `externalKey` property of your Digital Twin must match the
     Common Name (CN) of the certificate.
 
 Run the script:

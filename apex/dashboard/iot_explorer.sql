@@ -2324,10 +2324,18 @@ create or replace package body iot_oci as
     v_config json_object_t; -- Config
     v_return json_object_t; -- JSON output for status/PEM/chain/private
     results dbms_cloud_oci_cert_certificates_get_certificate_bundle_response_t; -- API response
+    get_cert_results dbms_cloud_oci_certm_certificates_management_get_certificate_response_t;
+    cert_cn varchar2(100); -- store common name of certificate
     begin
 
       -- Fetch the OCI configuration from the app-owned table
       v_config := iot_apex.iot_config; -- Get the OCI configuration
+
+      get_cert_results := dbms_cloud_oci_certm_certificates_management.get_certificate(
+        certificate_id => p_cert_ocid, -- Certificate OCID 
+        region => v_config.get_string('tenancy_region'), -- Region 
+        credential_name => v_config.get_string('credentials') -- Credential name
+      );
 
       -- Call the OCI API to get the certificate bundle
       results := dbms_cloud_oci_cert_certificates.get_certificate_bundle(
@@ -2337,10 +2345,18 @@ create or replace package body iot_oci as
         credential_name => v_config.get_string('credentials') -- Credential name
       ); -- Get the certificate bundle
 
+      if get_cert_results.status_code = '200' then -- check for success of get_certificate
+        cert_cn := treat(
+                      treat(
+                        get_cert_results.response_body as dbms_cloud_oci_certificates_management_certificate_t
+                      ).subject as dbms_cloud_oci_certificates_management_certificate_subject_t
+                    ).common_name;
+      end if;
+
       -- Package the result for output as a JSON clob
       v_return := json_object_t(); -- Create a new JSON object
       v_return.put('status',results.status_code); -- Status code of the API response
-
+      v_return.put('common_name',cert_cn); -- common name of the cert 
       v_return.put('cert_pem',
                     treat(
                       results.response_body as dbms_cloud_oci_certificates_certificate_bundle_t

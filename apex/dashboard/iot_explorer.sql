@@ -389,6 +389,8 @@ end;
 /
 
 
+
+
 -- Create iot_apex package
 create or replace package iot_apex as
   function clob_to_blob(
@@ -522,6 +524,8 @@ create or replace package body iot_apex as
   end;
 end iot_apex;
 /
+
+
 
 
 -- Create iot_info package
@@ -1249,132 +1253,186 @@ create or replace package body iot_info as
 end;
 /
 
+
+
+
 -- Create iot_objects package
-create or replace package iot_objects as
-  function instance_api_body(
+create or replace package iot_objects as 
+  -- Constructs a JSON clob for "instance" API requests using supplied parameters 
+  function instance_api_body( 
     p_type varchar2 /* structured or unstructured */,
-    p_auth_id varchar2,
-    p_display_name varchar2 default null,
-    p_description varchar2 default null,
-    p_external_key varchar2 default null,
-    p_dt_adapt_ocid varchar2 default null,
-    p_freeform_tags varchar2 default null ) return clob;
+    p_iot_domain_ocid varchar2 default null, /*only needed on create request*/
+    p_auth_id varchar2, 
+    p_display_name varchar2 default null, 
+    p_description varchar2 default null, 
+    p_external_key varchar2 default null, 
+    p_dt_adapt_ocid varchar2 default null, 
+    p_freeform_tags varchar2 default null,
+    p_ocid varchar2 default null --identity of object for update and delete
+  ) return clob; 
 
-  function instance_cli(
-    p_type varchar2 /* structured or unstructured */,
-    p_auth_id varchar2,
-    p_display_name varchar2 default null,
-    p_description varchar2 default null,
-    p_external_key varchar2 default null,
-    p_dt_adapt_ocid varchar2 default null,
-    p_freeform_tags varchar2 default null ) return clob;
+  -- Builds CLI command to create a digital twin instance from parameters 
+  function instance_cli( 
+    p_type varchar2, /* structured or unstructured */
+    p_iot_domain_ocid varchar2 default null,
+    p_auth_id varchar2, 
+    p_display_name varchar2 default null, 
+    p_description varchar2 default null, 
+    p_external_key varchar2 default null, 
+    p_dt_adapt_ocid varchar2 default null, 
+    p_freeform_tags varchar2 default null,
+    p_action varchar2 default 'create', /* create or update or delete */
+    p_ocid varchar2 default null --identity of object for update and delete
+  ) return clob; 
 
-  function create_instance(p_body clob) return clob;
+  -- Calls REST API to create a digital twin instance, given a JSON clob body 
+  function create_instance(p_body clob) return clob; 
 
+  -- Calls REST API to update a digital twin instance, given the ocid of the 
+  -- instance to be updated and JSON clob body 
+  function update_instance(p_ocid varchar2, p_body clob) return clob;
+
+  -- Constructs the API JSON body to create a digital twin model 
   function model_api_body(
-    p_description varchar2 default null,
+    p_iot_domain_ocid varchar2 default null, /*only needed on create request*/
     p_display_name varchar2,
-    p_context varchar2,
-    p_contents clob,
-    p_freeform_tags clob default null,
-    p_dtdl_id varchar2 default null) return clob;
+    p_description varchar2 default null, 
+    p_context varchar2, 
+    p_contents clob, 
+    p_freeform_tags clob default null, 
+    p_dtdl_id varchar2 default null,
+    p_ocid varchar2 default null --identity of object for update and delete
+  ) return clob; 
 
-  function model_cli(
-    p_description varchar2 default null,
+  -- Builds CLI command to create a digital twin model 
+ function model_cli(
+    p_iot_domain_ocid varchar2 default null,
     p_display_name varchar2,
-    p_context varchar2,
-    p_contents clob,
-    p_freeform_tags clob default null,
-    p_dtdl_id varchar2 default null) return clob;
+    p_description varchar2 default null, 
+    p_context varchar2, /* expects comma seperated list */
+    p_contents clob,  /* expects json format */
+    p_freeform_tags clob default null, /* json object format { "key":"value","key":"value" } */
+    p_dtdl_id varchar2 default null,
+    p_action varchar2 default 'create', /* create or update or delete */ 
+    p_ocid varchar2 default null --used to identify model for update or delete
+  ) return clob; 
 
-  function create_model(p_body clob) return clob;
+  -- Calls REST API to create a digital twin model 
+  function create_model(p_body clob) return clob; 
 
+  -- Calls REST API to update a digital twin model, given the ocid of the 
+  -- model to be updated and JSON clob body 
+  function update_model(p_ocid varchar2, p_body clob) return clob; 
+
+  -- Constructs JSON API payload for digital twin adapter creation 
   function adapter_api_body(
-    p_dt_model_ocid varchar2,
-    p_display_name varchar2,
-    p_description varchar2 default null ) return clob;
+    p_iot_domain_ocid varchar2 default null, /*only needed on create request*/
+    p_dt_model_ocid varchar2 default null, 
+    p_display_name varchar2, 
+    p_description varchar2 default null,
+    p_ocid varchar2 default null --used to identify adapter for update or delete
+  ) return clob; 
 
-  function adapter_cli(
-    p_dt_model_ocid varchar2,
-    p_display_name varchar2,
-    p_description varchar2 default null ) return clob;
+  -- Composes CLI command for digital twin adapter creation 
+  function adapter_cli( 
+    p_iot_domain_ocid varchar2 default null, /*only needed on create request*/
+    p_dt_model_ocid varchar2, 
+    p_display_name varchar2, 
+    p_description varchar2 default null,
+    p_action varchar2 default 'create', /* create or update or delete */
+    p_ocid varchar2 default null 
+  ) return clob; 
 
-  function create_adapter(p_body clob) return clob;
+  -- Calls REST API to create a digital twin adapter 
+  function create_adapter(p_body clob) return clob; 
 
-  function delete_object(p_object_ocid varchar2) return clob;
+  -- Calls REST API to update a digital twin adapter, given the ocid of the 
+  -- adapter to be updated and JSON clob body 
+  function update_adapter(p_ocid varchar2, p_body clob) return clob; 
+
+  -- Calls REST API to delete a digital twin model, adapter, or instance, 
+  -- depending on OCID type inferred from its prefix pattern 
+  function delete_object(p_object_ocid varchar2) return clob; 
 end iot_objects;
 /
 
 -- Create iot_objects package body
 create or replace package body iot_objects as
   -- Constructs a JSON clob for "instance" API requests using supplied parameters
-  function instance_api_body(
-    p_type varchar2,
-    p_auth_id varchar2,
-    p_display_name varchar2 default null,
-    p_description varchar2 default null,
-    p_external_key varchar2 default null,
-    p_dt_adapt_ocid varchar2 default null,
-    p_freeform_tags varchar2 default null)
-    return clob is
-      v_domain_ocid varchar2(255);
-      json_main json_object_t;
-      json_obj json_object_t;
-    begin
+  function instance_api_body( 
+    p_type varchar2 /* structured or unstructured */,
+    p_iot_domain_ocid varchar2 default null, /*only needed on create request*/
+    p_auth_id varchar2, 
+    p_display_name varchar2 default null, 
+    p_description varchar2 default null, 
+    p_external_key varchar2 default null, 
+    p_dt_adapt_ocid varchar2 default null, 
+    p_freeform_tags varchar2 default null,
+    p_ocid varchar2 default null --identity of object for update and delete
+    ) 
+    return clob is 
+      v_domain_ocid varchar2(255); 
+      json_main json_object_t; 
+      json_obj json_object_t; 
+    begin 
 
-      select id into v_domain_ocid from table( iot_info.get_dom ); -- Get domain OCID
-      json_main := json_object_t();
-      json_main.put('iotDomainId',v_domain_ocid);
+      json_main := json_object_t(); 
 
       -- Conditionally populate JSON keys if params present
-      if p_auth_id is not null then json_main.put('authId',p_auth_id); end if;
-      if p_display_name is not null then json_main.put('displayName',p_display_name); end if;
-      if p_description is not null then json_main.put('description',p_description); end if;
-      if p_external_key is not null then json_main.put('externalKey',p_external_key); end if;
+      if p_iot_domain_ocid is not null then json_main.put('iotDomainId',p_iot_domain_ocid); end if;
+      if p_auth_id is not null then json_main.put('authId',p_auth_id); end if; 
+      if p_display_name is not null then json_main.put('displayName',p_display_name); end if; 
+      if p_description is not null then json_main.put('description',p_description); end if; 
+      if p_external_key is not null then json_main.put('externalKey',p_external_key); end if; 
 
-      -- Add digitalTwinAdapterId for type "structured"
-      if lower(p_type) = 'structured' then
-        if p_dt_adapt_ocid is not null then
-          json_main.put('digitalTwinAdapterId',p_dt_adapt_ocid);
-        end if;
-      end if;
+      -- Add digitalTwinAdapterId for type "structured" 
+      if lower(p_type) = 'structured' then 
+        if p_dt_adapt_ocid is not null then 
+          json_main.put('digitalTwinAdapterId',p_dt_adapt_ocid); 
+        end if; 
+      end if; 
 
-      -- If freeform tags are supplied, add as JSON object
-      if p_freeform_tags is not null then
-        json_obj := json_object_t();
-        json_obj := json_object_t( p_freeform_tags );
-        json_main.put('freeformTags',json_obj);
-      end if;
+      -- If freeform tags are supplied, add as JSON object 
+      if p_freeform_tags is not null then 
+        json_obj := json_object_t(); 
+        json_obj := json_object_t( p_freeform_tags ); 
+        json_main.put('freeformTags',json_obj); 
+      end if; 
 
-    return  json_main.to_clob; -- Return the assembled JSON as clob
+    return  json_main.to_clob; -- Return the assembled JSON as clob 
 
-    exception
-      when others then
-        return 'Error: ' || sqlerrm; -- On error, return error text
+    exception 
+      when others then 
+        return 'Error: ' || sqlerrm; -- On error, return error text 
+  end; 
 
-  end;
 
-
-  -- Builds CLI command to create a digital twin instance from parameters
+  -- Builds CLI command to create, update, or delete a digital twin instance
   function instance_cli(
-    p_type varchar2,
-    p_auth_id varchar2,
-    p_display_name varchar2 default null,
-    p_description varchar2 default null,
-    p_external_key varchar2 default null,
-    p_dt_adapt_ocid varchar2 default null,
-    p_freeform_tags varchar2 default null )
+    p_type varchar2, /* structured or unstructured */
+    p_iot_domain_ocid varchar2 default null,
+    p_auth_id varchar2, 
+    p_display_name varchar2 default null, 
+    p_description varchar2 default null, 
+    p_external_key varchar2 default null, 
+    p_dt_adapt_ocid varchar2 default null, 
+    p_freeform_tags varchar2 default null,
+    p_action varchar2 default 'create', /* create or update or delete */
+    p_ocid varchar2 default null --identity of object for update and delete
+    ) 
     return clob is
-      json_main json_object_t;
-      json_obj json_object_t;
-      v_return clob;
-      v_domain_ocid varchar2(300);
-      v_display_name varchar2(100);
-      v_description varchar2(500);
-      v_iot_domain varchar2(300);
-      v_external_key varchar2(100);
-      v_dt_adapt_ocid varchar2(300);
+      json_main json_object_t; 
+      json_obj json_object_t; 
+      v_return clob; 
+      v_auth_id varchar2(300);
+      p_iot_domain_ocid varchar2(300);
+      v_display_name varchar2(100); 
+      v_description varchar2(500); 
+      v_iot_domain_ocid varchar2(300); 
+      v_external_key varchar2(100); 
+      v_dt_adapt_ocid varchar2(300); 
       v_freeform_tags varchar2(500);
+      v_ocid varchar2(300);
     begin
 
       -- Build CLI parameter portions only if inputs provided
@@ -1385,10 +1443,9 @@ create or replace package body iot_objects as
       v_description := nvl2(p_description,
                             '--description "'|| p_description ||'" ',
                             null);
-
-      select  '--iot-domain-id "'|| id ||'" '
-      into    v_iot_domain
-      from    table( iot_info.get_dom ); -- Get domain as CLI param
+      v_iot_domain_ocid := nvl2(p_iot_domain_ocid, 
+                            '--iotDomainId "'|| p_iot_domain_ocid ||'" ', 
+                            null); 
 
       -- For structured type, add adapter id param
       if lower(p_type) = 'structured' then
@@ -1398,25 +1455,42 @@ create or replace package body iot_objects as
       end if;
 
       -- Optional params
-      v_external_key := nvl2(p_external_key,
-                             '--external-key "' || p_external_key || '" ',
-                             null);
-      v_dt_adapt_ocid := nvl2(p_auth_id,
-                              '--auth-id "' || p_auth_id || '" ',
+      v_external_key := nvl2(p_external_key, 
+                             '--external-key "' || p_external_key || '" ', 
+                             null); 
+      v_auth_id := nvl2(p_auth_id, 
+                              '--auth-id "' || p_auth_id || '" ', 
+                              null); 
+      v_freeform_tags := nvl2(p_freeform_tags, 
+                              '--freeform-tags '''|| p_freeform_tags ||''' ', 
                               null);
-      v_freeform_tags := nvl2(p_freeform_tags,
-                              '--freeform-tags "'|| p_freeform_tags ||'" ',
-                              null);
+      v_ocid := nvl2(p_ocid, 
+                      '--digital-twin-instance-id "'|| p_ocid ||'" ', 
+                      null);
 
       -- Compose entire CLI command
-      v_return := 'oci iot digital-twin-instance create '||
-                  v_display_name||
-                  v_description||
-                  v_iot_domain||
-                  v_domain_ocid||
-                  v_external_key||
-                  v_freeform_tags||
-                  v_dt_adapt_ocid;
+      if lower(p_action) = 'create' then
+        v_return := 'oci iot digital-twin-instance '|| lower(p_action) ||' '||
+                    v_iot_domain_ocid||
+                    v_display_name|| 
+                    v_description||  
+                    v_external_key|| 
+                    v_freeform_tags||
+                    v_dt_adapt_ocid||
+                    v_auth_id;
+      elsif lower(p_action) = 'update' and v_ocid is not null then
+        v_return := 'oci iot digital-twin-instance '|| lower(p_action) ||' '||
+                    v_display_name|| 
+                    v_description|| 
+                    v_external_key|| 
+                    v_freeform_tags||
+                    v_dt_adapt_ocid||
+                    v_auth_id||
+                    v_ocid;
+      elsif lower(p_action) = 'delete' and v_ocid is not null then
+        v_return := 'oci iot digital-twin-instance '|| lower(p_action) ||' '|| 
+                    v_ocid;
+      end if;
 
     return  v_return;
 
@@ -1460,18 +1534,58 @@ create or replace package body iot_objects as
       when others then
           -- Log any errors that occur during the execution of this function
           return 'Error: ' || sqlerrm;
-
   end;
+
+
+  -- Calls REST API to update a digital twin instance, given a JSON clob body 
+  function update_instance(p_ocid varchar2, p_body clob) 
+    return clob 
+    as 
+    response dbms_cloud_types.resp; 
+    v_return clob; 
+    v_config json_object_t; 
+    v_blob blob; 
+    v_uri varchar2(500); 
+    begin 
+
+      v_config := iot_apex.iot_config; -- Load config 
+
+      v_blob := iot_apex.clob_to_blob(p_body); -- Convert JSON body to BLOB 
+
+      response := dbms_cloud.send_request( 
+          credential_name    => v_config.get_string('credentials'), 
+          uri                => 'https://iot.'|| 
+                                v_config.get_string('tenancy_region')|| 
+                                '.oci.oraclecloud.com/20250531/digitalTwinInstances/'||p_ocid, 
+          method             => 'PUT', 
+          body               => v_blob ); 
+
+      -- Read and return response text 
+      v_return := 
+          dbms_cloud.get_response_text( 
+              resp          => response ); 
+
+    return v_return; 
+
+    exception 
+      when others then 
+          -- Log any errors that occur during the execution of this function 
+          return 'Error: ' || sqlerrm; 
+
+  end; 
 
 
   -- Constructs the API JSON body to create a digital twin model
   function model_api_body(
-    p_description varchar2 default null,
+    p_iot_domain_ocid varchar2 default null, /*only needed on create request*/
     p_display_name varchar2,
-    p_context varchar2,
-    p_contents clob,
-    p_freeform_tags clob default null,
-    p_dtdl_id varchar2 default null )
+    p_description varchar2 default null,  
+    p_context varchar2, 
+    p_contents clob, 
+    p_freeform_tags clob default null, 
+    p_dtdl_id varchar2 default null,
+    p_ocid varchar2 default null --identity of object for update and delete
+    ) 
     return clob
     is
       v_return clob;
@@ -1482,10 +1596,11 @@ create or replace package body iot_objects as
       json_obj json_object_t;
       json_array json_array_t;
     begin
-      select id into v_domain_ocid from table( iot_info.get_dom ); -- Get domain OCID
       json_main := json_object_t();
 
-      json_main.put('iotDomainId',v_domain_ocid);
+      if p_iot_domain_ocid is not null then 
+        json_main.put('iotDomainId',p_iot_domain_ocid); 
+      end if; 
 
       if p_display_name is not null then
         json_main.put('displayName',p_display_name);
@@ -1493,6 +1608,13 @@ create or replace package body iot_objects as
 
       if p_description is not null then
         json_main.put('description',p_description);
+      end if;
+
+      -- Attach freeformTags JSON object if present and valid
+      if p_freeform_tags is not null and iot_apex.is_json( p_freeform_tags ) = 'true' then
+        json_obj := json_object_t();
+        json_obj := json_object_t( p_freeform_tags );
+        json_main.put('freeformTags',json_obj);
       end if;
 
       json_spec := json_object_t();
@@ -1510,13 +1632,6 @@ create or replace package body iot_objects as
       end if;
 
       json_spec.put('@type','Interface'); -- Always "Interface"
-
-      -- Attach freeformTags JSON object if present and valid
-      if p_freeform_tags is not null and iot_apex.is_json( p_freeform_tags ) = 'true' then
-        json_obj := json_object_t();
-        json_obj := json_object_t( p_freeform_tags );
-        json_spec.put('freeformTags',json_obj);
-      end if;
 
       -- Build @context as JSON array if provided (comma separated context)
       if p_context is not null then
@@ -1547,48 +1662,57 @@ create or replace package body iot_objects as
 
   -- Builds CLI command to create a digital twin model
   function model_cli(
-    p_description varchar2 default null,
+    p_iot_domain_ocid varchar2 default null,
     p_display_name varchar2,
-    p_context varchar2,
-    p_contents clob,
-    p_freeform_tags clob default null,
-    p_dtdl_id varchar2 default null)
+    p_description varchar2 default null, 
+    p_context varchar2, /* expects comma seperated list */
+    p_contents clob,  /* expects json format */
+    p_freeform_tags clob default null, /* json object format { "key":"value","key":"value" } */
+    p_dtdl_id varchar2 default null,
+    p_action varchar2 default 'create', /* create or update or delete */ 
+    p_ocid varchar2 default null --used to identify model for update or delete
+    ) 
     return clob
     is
-      v_return clob;
-      v_result clob;
-      v_json_src json_object_t;
-      v_json_spec json_object_t;
-      v_domain_ocid varchar2(300);
-      v_display_name varchar2(300);
-      v_description varchar2(500);
-      v_context varchar2(300);
-      v_contents clob;
+      v_return clob; 
+      v_result clob; 
+      v_json_src json_object_t; 
+      v_json_spec json_object_t; 
+      v_iot_domain_ocid varchar2(300); 
+      v_display_name varchar2(300); 
+      v_description varchar2(500); 
+      v_context varchar2(300); 
+      v_contents clob; 
       v_freeform_tags clob;
+      v_ocid varchar2(255);
     begin
-      -- Fetch OCID parameter for CLI
-      select  '--iot-domain-id "'|| id ||'" '
-      into    v_domain_ocid
-      from    table( iot_info.get_dom );
-
       -- Build CLI parameter strings
-      v_display_name := nvl2(p_display_name,
-                             '--display-name "'|| p_display_name ||'" ',
-                             null);
-      v_description := nvl2(p_description,
-                            '--description "'|| p_description ||'" ',
-                            null);
-      v_freeform_tags := nvl2(p_freeform_tags,
-                              '--freeform-tags "'|| p_freeform_tags ||'" ',
-                              null);
+      v_iot_domain_ocid := nvl2(p_iot_domain_ocid, 
+            '--iot-domain-id "'|| p_iot_domain_ocid ||'" ', 
+            null);
+      v_display_name := nvl2(p_display_name, 
+            '--display-name "'|| p_display_name ||'" ', 
+            null); 
+      v_description := nvl2(p_description, 
+            '--description "'|| p_description ||'" ', 
+            null); 
+      v_freeform_tags := nvl2(p_freeform_tags, 
+            '--freeform-tags "'|| p_freeform_tags ||'" ', 
+            null);
+      v_ocid := nvl2(p_ocid, 
+            '--digital-twin-model-id "'|| p_ocid ||'" ', 
+            null);
 
       v_result := iot_objects.model_api_body(
-                    p_description,
-                    p_display_name,
-                    p_context,
-                    p_contents,
-                    p_freeform_tags,
-                    p_dtdl_id );
+        p_iot_domain_ocid => p_iot_domain_ocid,
+        p_display_name => p_display_name,
+        p_description => p_description,
+        p_context => p_context,
+        p_contents => p_contents,
+        p_freeform_tags => p_freeform_tags,
+        p_dtdl_id => p_dtdl_id,
+        p_ocid => v_ocid );
+
       v_json_src := json_object_t.parse(v_result);
       v_json_spec := json_object_t();
 
@@ -1610,20 +1734,26 @@ create or replace package body iot_objects as
                                     ).get('contents') as json_array_t
                                   )
                                 );
-      v_json_spec.put('freeformTags', treat(
-                                        treat(
-                                          v_json_src.get('spec') as json_object_t
-                                        ).get('freeformTags') as json_object_t
-                                      )
-                                    );
 
-      -- Build CLI invocation string
-      v_return := 'oci iot digital-twin-model create '||
-                  v_domain_ocid||
-                  v_display_name||
-                  v_description||
-                  v_freeform_tags||
-                  '--spec "'||v_json_spec.to_clob||'"';
+      -- Build CLI invocation string 
+      if lower(p_action) = 'delete' and v_ocid is not null then
+        v_return := 'oci iot digital-twin-model '|| p_action ||' '|| v_ocid;
+      elsif lower(p_action) = 'update' and v_ocid is not null then
+        v_return := 'oci iot digital-twin-model '|| p_action ||' '|| 
+                    v_iot_domain_ocid|| 
+                    v_ocid||
+                    v_display_name|| 
+                    v_description|| 
+                    v_freeform_tags|| 
+                    '--spec "'||v_json_spec.to_clob||'"'; 
+      elsif lower(p_action) = 'create' then 
+        v_return := 'oci iot digital-twin-model '|| p_action ||' '|| 
+                    v_iot_domain_ocid|| 
+                    v_display_name|| 
+                    v_description|| 
+                    v_freeform_tags|| 
+                    '--spec "'||v_json_spec.to_clob||'"'; 
+      end if;
 
       return v_return;
 
@@ -1651,95 +1781,158 @@ create or replace package body iot_objects as
 
       v_blob := iot_apex.clob_to_blob(p_body); -- Prepare HTTP body
 
-          response := dbms_cloud.send_request(
-              credential_name    => v_config.get_string('credentials'),
-              uri                => 'https://iot.'||
-                                    v_config.get_string('tenancy_region')||
-                                    '.oci.oraclecloud.com/20250531/digitalTwinModels',
-              method             => 'POST',
-              body               => v_blob );
+      response := dbms_cloud.send_request(
+          credential_name    => v_config.get_string('credentials'),
+          uri                => 'https://iot.'||
+                                v_config.get_string('tenancy_region')||
+                                '.oci.oraclecloud.com/20250531/digitalTwinModels',
+          method             => 'POST',
+          body               => v_blob );
 
-          v_return :=
-              dbms_cloud.get_response_text(
-                  resp          => response );
+      v_return :=
+          dbms_cloud.get_response_text(
+              resp          => response );
 
       return v_return;
 
       exception
         when others then
           return 'Error: ' || sqlerrm;
-
   end;
+
+
+  -- Calls REST API to create a update twin model 
+  function update_model(p_ocid varchar2, p_body clob) 
+    return clob 
+    is 
+    response dbms_cloud_types.resp; 
+    v_return clob; 
+    v_blob blob; 
+    v_config json_object_t;
+    v_json_body json_object_t;
+    v_body clob;
+    begin 
+
+      v_config := iot_apex.iot_config; -- Load settings 
+
+      if iot_apex.is_json(p_body) = 'false' then 
+        raise_application_error(-20001, 'Improper JSON.'); -- Validate JSON 
+      end if; 
+
+      v_json_body := JSON_OBJECT_T.PARSE(p_body);
+      v_json_body.remove('spec');
+      v_body := v_json_body.to_clob;
+
+      v_blob := iot_apex.clob_to_blob(v_body); -- Prepare HTTP body 
+
+          response := dbms_cloud.send_request( 
+              credential_name    => v_config.get_string('credentials'), 
+              uri                => 'https://iot.'|| 
+                                    v_config.get_string('tenancy_region')|| 
+                                    '.oci.oraclecloud.com/20250531/digitalTwinModels/'||p_ocid, 
+              method             => 'PUT', 
+              body               => v_blob ); 
+
+          v_return := 
+              dbms_cloud.get_response_text( 
+                  resp          => response ); 
+
+      return v_return; 
+
+      exception 
+        when others then 
+          return 'Error: ' || sqlerrm; 
+  end; 
 
 
   -- Constructs JSON API payload for digital twin adapter creation
   function adapter_api_body(
-    p_dt_model_ocid varchar2,
-    p_display_name varchar2,
-    p_description varchar2 default null )
+    p_iot_domain_ocid varchar2 default null, /*only needed on create request*/
+    p_dt_model_ocid varchar2 default null, 
+    p_display_name varchar2, 
+    p_description varchar2 default null,
+    p_ocid varchar2 default null ) 
     return clob
     is
     v_domain_ocid varchar2(255);
     json_main json_object_t;
     begin
-      select  id
-      into    v_domain_ocid
-      from    table( iot_info.get_dom ); -- Get domain OCID
-
       json_main := json_object_t();
 
-      json_main.put('iotDomainId',v_domain_ocid);
-      if p_dt_model_ocid is not null then
-        json_main.put('digitalTwinModelId',p_dt_model_ocid);
-      end if;
-      if p_display_name is not null then
-        json_main.put('displayName',p_display_name);
-      end if;
-      if p_description is not null then
-        json_main.put('description',p_description);
-      end if;
+      if p_iot_domain_ocid is not null then 
+        json_main.put('iotDomainId',p_iot_domain_ocid); 
+      end if; 
+      if p_dt_model_ocid is not null then 
+        json_main.put('digitalTwinModelId',p_dt_model_ocid); 
+      end if; 
+      if p_display_name is not null then 
+        json_main.put('displayName',p_display_name); 
+      end if; 
+      if p_description is not null then 
+        json_main.put('description',p_description); 
+      end if; 
+      if p_ocid is not null then 
+        json_main.put('digitalTwinAdapterId',p_ocid); 
+      end if; 
 
-      return  json_main.to_clob;
+      return  json_main.to_clob; 
 
-      exception
-        when others then
-          return 'Error: ' || sqlerrm;
-  end;
+      exception 
+        when others then 
+          return 'Error: ' || sqlerrm; 
+  end; 
 
 
   -- Composes CLI command for digital twin adapter creation
   function adapter_cli(
-    p_dt_model_ocid varchar2,
-    p_display_name varchar2,
-    p_description varchar2 default null )
+    p_iot_domain_ocid varchar2 default null, /*only needed on create request*/
+    p_dt_model_ocid varchar2, 
+    p_display_name varchar2, 
+    p_description varchar2 default null,
+    p_action varchar2 default 'create', /* create or update or delete */
+    p_ocid varchar2 default null ) 
     return clob
     is
-      v_domain_ocid varchar2(255);
-      v_return clob;
-      v_dt_model_ocid varchar2(300);
-      v_display_name varchar2(100);
+      v_domain_ocid varchar2(255); 
+      v_return clob; 
+      v_dt_model_ocid varchar2(300); 
+      v_display_name varchar2(100); 
       v_description varchar2(500);
+      v_ocid varchar2(300);
     begin
-
-      v_display_name := nvl2(p_display_name,
-                             '--display-name "'|| p_display_name || '" ',
-                             null);
-      v_description := nvl2(p_description,
-                            '--description "'|| p_description ||'" ',
-                            null);
-      v_dt_model_ocid := nvl2(p_dt_model_ocid,
-                              '--description "'|| p_dt_model_ocid ||'" ',
-                              null);
+      v_display_name := nvl2(p_display_name, 
+        '--display-name "'|| p_display_name || '" ', 
+        null); 
+      v_description := nvl2(p_description, 
+        '--description "'|| p_description ||'" ', 
+        null); 
+      v_dt_model_ocid := nvl2(p_dt_model_ocid, 
+        '--digital-twin-model-id "'|| p_dt_model_ocid ||'" ', 
+        null);
+      v_ocid := nvl2(p_ocid, 
+        '--digital-twin-adapter-id "'|| p_ocid ||'" ', 
+        null); 
 
       select  '--iot-domain-id "'|| id  ||'" '
       into    v_domain_ocid
       from    table( iot_info.get_dom );
 
-      v_return := 'oci iot digital-twin-adapter create '||
-                  v_display_name||
-                  v_description||
-                  v_dt_model_ocid||
-                  v_domain_ocid;
+      if lower(p_action) = 'create' then
+        v_return := 'oci iot digital-twin-adapter '|| p_action ||' '|| 
+                    v_domain_ocid||
+                    v_display_name|| 
+                    v_description|| 
+                    v_dt_model_ocid;
+      elsif lower(p_action) = 'update' and v_ocid is not null then
+        v_return := 'oci iot digital-twin-adapter '|| p_action ||' '||
+                    v_ocid||
+                    v_display_name|| 
+                    v_description|| 
+                    v_dt_model_ocid;
+      elsif lower(p_action) = 'delete' and v_ocid is not null then
+        v_return := 'oci iot digital-twin-adapter '|| p_action ||' '||
+                    v_ocid;
+      end if;
 
       return  v_return;
 
@@ -1782,9 +1975,42 @@ create or replace package body iot_objects as
       when others then
           -- Log any errors that occur during the execution of this function
           return 'Error: ' || sqlerrm;
-
   end;
 
+  -- Calls REST API to update a digital twin adapter 
+  function update_adapter(p_ocid varchar2, p_body clob) 
+    return clob 
+    is 
+    response dbms_cloud_types.resp; 
+      v_return clob; 
+      v_blob blob; 
+      v_config json_object_t; 
+
+    begin 
+
+      v_config := iot_apex.iot_config; -- Load settings 
+
+      v_blob := iot_apex.clob_to_blob(p_body); 
+
+      response := dbms_cloud.send_request( 
+          credential_name    => v_config.get_string('credentials'), 
+          uri                => 'https://iot.'|| 
+                                v_config.get_string('tenancy_region')|| 
+                                '.oci.oraclecloud.com/20250531/digitalTwinAdapters/'||p_ocid, 
+          method             => 'PUT', 
+          body               => v_blob ); 
+
+      v_return := 
+          dbms_cloud.get_response_text( 
+              resp          => response ); 
+
+    return v_return; 
+
+    exception 
+      when others then 
+          -- Log any errors that occur during the execution of this function 
+          return 'Error: ' || sqlerrm; 
+  end; 
 
   -- Calls REST API to delete a digital twin model, adapter, or instance,
   -- depending on OCID type inferred from its prefix pattern
@@ -1827,11 +2053,11 @@ create or replace package body iot_objects as
       when others then
           -- Log any errors that occur during the execution of this function
           return 'Error: ' || sqlerrm;
-
   end;
-
 end iot_objects;
 /
+
+
 
 
 -- Create iot_oci package
@@ -2383,6 +2609,8 @@ create or replace package body iot_oci as
 
 end iot_oci;
 /
+
+
 
 
 --create auth_view which list all certs and secrets accessable to IoT and there lifecycle state

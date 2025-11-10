@@ -1,6 +1,17 @@
 <!-- markdownlint-disable MD024 -->
 # IoT Explorer - Release Notes
 
+## November 7th, 2025
+
+### New Features
+
+- Added ability to update objects to iot_objects package.
+
+### Changes
+
+- Functions in the iot_objects package must now be passed the
+IoT Domain ocid when needed
+
 ## October 17th, 2025
 
 ### New Features

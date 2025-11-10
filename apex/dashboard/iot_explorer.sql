@@ -1819,7 +1819,7 @@ create or replace package body iot_objects as
         raise_application_error(-20001, 'Improper JSON.'); -- Validate JSON 
       end if; 
 
-      v_json_body := JSON_OBJECT_T.PARSE(p_body);
+      v_json_body := json_object_t.parse(p_body);
       v_json_body.remove('spec');
       v_body := v_json_body.to_clob;
 

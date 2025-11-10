@@ -197,7 +197,7 @@ def stream(
 
     Args:
         connection (oracledb.Connection): The database connection.
-        queue_name (str): the name a the queue to stream from.
+        queue_name (str): the name of the queue to stream from.
         subscriber (oracledb.DbObject): A subscriber agent database object.
     """
     try:

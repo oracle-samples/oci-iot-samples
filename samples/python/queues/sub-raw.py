@@ -146,7 +146,7 @@ def subscribe(
 
     Args:
         connection (oracledb.Connection): The database connection.
-        queue_name (str): the name a the queue to subscribe to.
+        queue_name (str): the name of the queue to subscribe to.
         digital_twin_instance_id (Optional[str]): The digital twin instance OCID.
         display_name (Optional[str]): The digital twin instance display name.
         endpoint (Optional[str]): The endpoint (topic) to filter messages on.

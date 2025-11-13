@@ -59,6 +59,7 @@ as well as the messages received.
 | Publish telemetry (WSS - Secure MQTT over WebSocket) |                       | [Sample](./samples/python/publish-websockets/)  |
 | Raw command-response scenario                        |                       | [Sample](./samples/python/command-response/)  |
 | Direct database connection — query telemetry         | [Sample](./samples/script/query-db/) | [Sample](./samples/python/query-db/)  |
+| Streaming IoT Platform data (Database queues)        |                       | [Sample](./samples/python/queues/)  |
 
 ## Documentation
 

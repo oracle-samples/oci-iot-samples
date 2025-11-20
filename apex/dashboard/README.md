@@ -14,12 +14,14 @@ This APEX application serves as a dashboard for monitoring IoT devices and messa
 The application includes the following optional features that require OCI
 credentials to function.
 
-1. Creation and deletion of models, adapters, and instances.
+1. Creation, updating, and deletion of models, adapters, and instances.
 2. Creation of certificates and passwords for instances created in the
    application.
-3. retrieval of passwords stored in a vault and private keys of certificates to
+3. Retrieval of certificate private key, certificate (pem), and certificate
+   chain (pem) stored in a OCI compartment.
+4. Retrieval of passwords stored in a vault and private keys of certificates to
    facilitate device setup.
-4. retrieval of IoT Domain Group and IoT Domain information where the
+5. Retrieval of IoT Domain Group and IoT Domain information where the
    application is running.
 
 >[!WARNING]
@@ -103,6 +105,9 @@ script for creating the following objects.
   - auth_view - lists certs and secrets accessible to IoT.
   - iot_certs - detailed information about certs available to IoT.
   - iot_passwords - detailed information about passwords stored in the vault.
+  - iot_model_view - json model information in table format via json_table.
+  - iot_adapter_view - json adapter information in table format via json_table.
+  - iot_instance_view - json instance information in table format via json_table.
 
 - Materialized Views
   - iot_msg_stats - computes basic stats on raw messages, rejected messages,

@@ -1,6 +1,21 @@
 <!-- markdownlint-disable MD024 -->
 # IoT Explorer - Release Notes
 
+## November 20th, 2025
+
+### New Features
+
+- Added new views that transform model, adapter, and instance
+data from json to table structure.
+- Models, Adapters, and Instances can be updated through the
+application. This includes an option to create new versions
+of models if needed.
+
+### Changes
+
+- functions in iot_objects package was changed to make them
+more versatile
+
 ## November 7th, 2025
 
 ### New Features

@@ -8,6 +8,9 @@
 -- DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 --
 
+drop view iot_model_view;
+drop view iot_adapter_view;
+drop view iot_instance_view;
 drop view iot_passwords;
 drop view iot_certs;
 drop view auth_view;

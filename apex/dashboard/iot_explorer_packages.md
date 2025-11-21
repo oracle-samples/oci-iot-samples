@@ -88,7 +88,8 @@ Platform objects.
 1. `IOT_OBJECTS.instance_api_body(p_type varchar2, p_iot_domain_ocid varchar2
 default null, p_auth_id varchar2, p_display_name varchar2 default null,
 p_description varchar2 default null, p_external_key varchar2 default null,
-p_dt_adapt_ocid varchar2 default null, p_freeform_tags varchar2 default null,
+p_dt_adapt_ocid varchar2 default null, p_dt_model_id varchar2 default null,
+p_dt_model_uri varchar2 default null,p_freeform_tags varchar2 default null,
 p_ocid varchar2 default null)`
     - Description: Constructs a JSON CLOB for "instance" API requests.
     - Parameters:
@@ -99,13 +100,16 @@ p_ocid varchar2 default null)`
       - `p_description` - the description (optional).
       - `p_external_key` - the external key (optional).
       - `p_dt_adapt_ocid` - the digital twin adapter OCID (optional).
+      - `p_dt_model_id` - the digital twin model OCID (optional).
+      - `p_dt_model_uri` - the digital twin model URI (optional).
       - `p_freeform_tags` - the freeform tags (optional).
       - `p_ocid` - ocid of object when updating or deleting.
     - Return Value: A JSON CLOB representing the instance API body.
 2. `IOT_OBJECTS.instance_cli(p_type varchar2, p_iot_domain_ocid varchar2
 default null, p_auth_id varchar2, p_display_name varchar2 default null,
 p_description varchar2 default null, p_external_key varchar2 default null,
-p_dt_adapt_ocid varchar2 default null, p_freeform_tags varchar2 default
+p_dt_adapt_ocid varchar2 default null, p_dt_model_id varchar2 default null,
+p_dt_model_uri varchar2 default null, p_freeform_tags varchar2 default
 null, p_action varchar2 default 'create', p_ocid varchar2 default null)`
     - Description: Builds a CLI command to create a digital twin instance.
     - Parameters:
@@ -116,8 +120,10 @@ null, p_action varchar2 default 'create', p_ocid varchar2 default null)`
       - `p_description` - the description (optional).
       - `p_external_key` - the external key (optional).
       - `p_dt_adapt_ocid` - the digital twin adapter OCID (optional).
+      - `p_dt_model_id` - the digital twin model OCID (optional).
+      - `p_dt_model_uri` - the digital twin model URI (optional).
       - `p_freeform_tags` - the freeform tags (optional).
-      - `p_action` - operation preformed 'create', 'update', or 'delete'.
+      - `p_action` - operation preformed 'create' or 'update'.
       - `p_ocid` - ocid of object when updating or deleting.
     - Return Value: A CLOB representing the CLI command.
 3. `IOT_OBJECTS.create_instance(p_body clob)`
@@ -160,7 +166,7 @@ default null)`
       - `p_contents` - the contents.
       - `p_freeform_tags` - the freeform tags (optional).
       - `p_dtdl_id` - the DTDL ID (optional).
-      - `p_action` - operation preformed 'create', 'update', or 'delete'.
+      - `p_action` - operation preformed 'create' or 'update'.
       - `p_ocid` - ocid of object when updating or deleting.
     - Return Value: A CLOB representing the CLI command.
 7. `IOT_OBJECTS.create_model(p_body clob)`
@@ -176,7 +182,7 @@ default null)`
     - Return Value: The response from the API as a CLOB.
 9. `IOT_OBJECTS.adapter_api_body(p_iot_domain_ocid varchar2 default null,
 p_dt_model_ocid varchar2, p_display_name varchar2, p_description varchar2
-default null, p_ocid varchar2 default null)`
+default null`
     - Description: Constructs a JSON API payload for digital twin adapter
   creation.
     - Parameters:
@@ -184,7 +190,6 @@ default null, p_ocid varchar2 default null)`
       - `p_dt_model_ocid` - the digital twin model OCID.
       - `p_display_name` - the display name.
       - `p_description` - the description (optional).
-      - `p_ocid` - ocid of object when updating or deleting.
     - Return Value: A JSON CLOB representing the adapter API body.
 10. `IOT_OBJECTS.adapter_cli(p_iot_domain_ocid varchar2 default null,
 p_dt_model_ocid varchar2, p_display_name varchar2, p_description varchar2

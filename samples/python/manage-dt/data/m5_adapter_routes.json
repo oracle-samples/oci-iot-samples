@@ -14,7 +14,7 @@
     "condition": "*",
     "description": "Default condition",
     "payloadMapping": {
-      "$.system": "$"
+      "$.system": "${.}"
     }
   }
 ]

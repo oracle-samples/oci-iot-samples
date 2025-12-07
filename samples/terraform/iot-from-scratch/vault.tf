@@ -11,7 +11,7 @@
 # Create the KMS vault
 resource "oci_kms_vault" "this" {
   compartment_id = local.compartment_id
-  display_name   = "vlt${local.environment_name}-${local.region_short_name}"
+  display_name   = "${local.org_name}-${var.app_id}-vlt-${local.region_short_name}"
   vault_type     = "DEFAULT"
   defined_tags   = var.defined_tags
   freeform_tags  = var.freeform_tags
@@ -26,7 +26,7 @@ resource "oci_kms_vault" "this" {
 # Master encryption keys: RSA for Certificate Authority, AES for Digital Twin secrets.
 resource "oci_kms_key" "ca" {
   compartment_id = local.compartment_id
-  display_name   = "key${local.environment_name}-crt-${local.region_short_name}"
+  display_name   = "${local.org_name}-${var.app_id}-key-${local.region_short_name}-cert"
   key_shape {
     algorithm = "RSA"
     # 2048 bits
@@ -42,7 +42,7 @@ resource "oci_kms_key" "ca" {
 
 resource "oci_kms_key" "secret" {
   compartment_id = local.compartment_id
-  display_name   = "key${local.environment_name}-secret-${local.region_short_name}"
+  display_name   = "${local.org_name}-${var.app_id}-key-${local.region_short_name}-secret"
   key_shape {
     algorithm = "AES"
     length    = 16
@@ -59,8 +59,8 @@ resource "oci_kms_key" "secret" {
 resource "oci_vault_secret" "this" {
   count = var.iot_digital_twin_basic_count
 
-  secret_name            = "secret${local.environment_name}-${var.iot_digital_twin_basic_name}-${format("%02d", count.index + 1)}-${local.region_short_name}"
-  description            = "Secret for Digital Twin ${var.iot_digital_twin_basic_name}-${format("%02d", count.index + 1)}${local.environment_description}"
+  secret_name            = "${local.org_name}-${var.app_id}-secret-${local.region_short_name}-${var.iot_digital_twin_basic_name}-${format("%02d", count.index + 1)}"
+  description            = "Secret for Digital Twin ${var.iot_digital_twin_basic_name}-${format("%02d", count.index + 1)} for ${var.app_id}${local.org_description}"
   compartment_id         = local.compartment_id
   key_id                 = oci_kms_key.secret.id
   vault_id               = oci_kms_vault.this.id
@@ -95,6 +95,6 @@ locals {
 
 # Write Digital Twin secrets to a local JSON file for use by sample devices/apps.
 resource "local_sensitive_file" "secrets" {
-  filename = "data/iot-device-secrets${local.environment_name}.json"
+  filename = "data/iot-device-secrets${local.org_name}.json"
   content  = jsonencode(local.iot_digital_twin_secrets)
 }

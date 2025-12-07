@@ -117,7 +117,7 @@ output "iot_data_access_ords_confidential_app" {
     Use the OCI console to create the Confidential App or run the following CLI command:
       oci identity-domains app create \
         --endpoint "https://${local.identity_domain_endpoint}" \
-        --display-name "app${local.environment_name}" \
+        --display-name "app${local.org_name}" \
         --based-on-template '{
             "$ref": "${local.identity_domain_endpoint}/admin/v1/AppTemplates/CustomWebAppTemplateId",
             "value": "CustomWebAppTemplateId",
@@ -137,7 +137,7 @@ output "iot_data_access_ords_confidential_app" {
         ]' \
         --audience "/${split(".", oci_iot_iot_domain_group.this.data_host)[0]}" \
         --client-type confidential \
-        --description "Confidential App${local.environment_description}" \
+        --description "Confidential App${local.org_description}" \
         --is-login-target true \
         --is-o-auth-client true \
         --is-o-auth-resource true \

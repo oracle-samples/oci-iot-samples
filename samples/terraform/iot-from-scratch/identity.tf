@@ -58,7 +58,7 @@ resource "terraform_data" "oci_identity_domains_setting_signing_cert_public_acce
 resource "oci_identity_domains_app" "this" {
   count = var.configure_ords_data_access && var.create_confidential_app ? 1 : 0
 
-  display_name  = "app${local.environment_name}"
+  display_name  = "${local.org_name}-${var.app_id}-app"
   idcs_endpoint = local.identity_domain_endpoint
   based_on_template {
     value         = "CustomWebAppTemplateId"
@@ -78,7 +78,7 @@ resource "oci_identity_domains_app" "this" {
   ]
   audience          = "/${split(".", oci_iot_iot_domain_group.this.data_host)[0]}"
   client_type       = "confidential"
-  description       = "Confidential App${local.environment_description}"
+  description       = "Confidential App for ${var.app_id}${local.org_description}"
   is_login_target   = true
   is_oauth_client   = true
   is_oauth_resource = true
@@ -112,8 +112,8 @@ resource "oci_identity_policy" "ca" {
 
   provider       = oci.home
   compartment_id = local.compartment_id
-  name           = "plc${local.environment_name}-ca"
-  description    = "Certificate Authority Service policy${local.environment_description}"
+  name           = "${local.org_name}-${var.app_id}-plc-ca"
+  description    = "Certificate Authority Service policy for ${var.app_id}${local.org_description}"
   statements = [
     "allow any-user to use keys in compartment id ${local.compartment_id} where request.principal.type = 'certificateauthority'",
     "allow any-user to manage objects in compartment id ${local.compartment_id} where request.principal.type = 'certificateauthority'",
@@ -131,8 +131,8 @@ resource "oci_identity_policy" "iot" {
 
   provider       = oci.home
   compartment_id = local.compartment_id
-  name           = "plc${local.environment_name}-iot"
-  description    = "IoT Platform policy${local.environment_description}"
+  name           = "${local.org_name}-${var.app_id}-plc-iot"
+  description    = "IoT Platform policy for ${var.app_id}${local.org_description}"
   statements = [
     "allow any-user to {SECRET_BUNDLE_READ, SECRET_READ} in compartment id ${local.compartment_id} where request.principal.type = 'iotdomain'",
     "allow any-user to {CERTIFICATE_BUNDLE_READ, CERTIFICATE_READ} in compartment id ${local.compartment_id} where request.principal.type = 'iotdomain'",
@@ -154,8 +154,8 @@ resource "oci_identity_compartment" "this" {
 
   provider       = oci.home
   compartment_id = var.parent_compartment_id
-  name           = "cmp${local.environment_name}"
-  description    = "IoT compartment ${local.environment_description}"
+  name           = "${local.org_name}-${var.app_id}-cmp"
+  description    = "IoT compartment for ${var.app_id}${local.org_description}"
   defined_tags   = var.defined_tags
   freeform_tags  = var.freeform_tags
   lifecycle {

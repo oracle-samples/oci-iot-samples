@@ -21,8 +21,8 @@
 
 # Root CA
 resource "oci_certificates_management_certificate_authority" "root_ca" {
-  name           = "root-ca${local.environment_name}-${local.region_short_name}"
-  description    = "Root CA${local.environment_description}"
+  name           = "${local.org_name}-${var.app_id}-ca-${local.region_short_name}-root"
+  description    = "Root CA for ${var.app_id}${local.org_description}"
   compartment_id = local.compartment_id
   kms_key_id     = oci_kms_key.ca.id
   certificate_authority_config {
@@ -50,8 +50,8 @@ resource "oci_certificates_management_certificate_authority" "root_ca" {
 
 # Subordinate CA
 resource "oci_certificates_management_certificate_authority" "sub_ca" {
-  name           = "sub-ca${local.environment_name}-${local.region_short_name}"
-  description    = "Subordinate CA${local.environment_description}"
+  name           = "${local.org_name}-${var.app_id}-ca-${local.region_short_name}-sub"
+  description    = "Subordinate CA for ${var.app_id}${local.org_description}"
   compartment_id = local.compartment_id
   kms_key_id     = oci_kms_key.ca.id
   certificate_authority_config {
@@ -82,8 +82,8 @@ resource "oci_certificates_management_certificate_authority" "sub_ca" {
 resource "oci_certificates_management_certificate" "this" {
   count = var.iot_digital_twin_cert_count
 
-  name           = "cert${local.environment_name}-${var.iot_digital_twin_cert_name}-${format("%02d", count.index + 1)}-${local.region_short_name}"
-  description    = "Certificate for Digital Twin  ${var.iot_digital_twin_cert_name}-${format("%02d", count.index + 1)}${local.environment_description}"
+  name           = "${local.org_name}-${var.app_id}-cert-${local.region_short_name}-${var.iot_digital_twin_cert_name}-${format("%02d", count.index + 1)}"
+  description    = "Certificate for Digital Twin ${var.iot_digital_twin_cert_name}-${format("%02d", count.index + 1)} ${local.region_short_name}${local.org_description}"
   compartment_id = local.compartment_id
   certificate_config {
     config_type                     = "ISSUED_BY_INTERNAL_CA"
@@ -118,6 +118,6 @@ locals {
 }
 
 resource "local_file" "certificates" {
-  filename = "data/iot-device-cert-id${local.environment_name}.json"
+  filename = "data/iot-device-cert-id${local.org_name}-${var.app_id}.json"
   content  = jsonencode(local.iot_digital_twin_cert_id)
 }

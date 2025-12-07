@@ -10,8 +10,8 @@
 
 resource "oci_iot_iot_domain_group" "this" {
   compartment_id = local.compartment_id
-  display_name   = "iot-dmn-grp${local.environment_name}-${local.region_short_name}"
-  description    = "Domain Group${local.environment_description}"
+  display_name   = "${local.org_name}-${var.app_id}-iotdmngrp-${local.region_short_name}"
+  description    = "IoT Domain Group for ${var.app_id}${local.org_description}"
 
   defined_tags  = var.defined_tags
   freeform_tags = var.freeform_tags
@@ -24,14 +24,12 @@ resource "oci_iot_iot_domain_group" "this" {
 }
 
 resource "oci_iot_iot_domain" "this" {
-  #Required
   compartment_id      = local.compartment_id
   iot_domain_group_id = oci_iot_iot_domain_group.this.id
-  display_name        = "iot-dmn${local.environment_name}-${local.region_short_name}"
-  description         = "Domain${local.environment_description}"
-
-  defined_tags  = var.defined_tags
-  freeform_tags = var.freeform_tags
+  display_name        = "${local.org_name}-${var.app_id}-iotdmn-${local.region_short_name}"
+  description         = "IoT Domain for ${var.app_id}${local.org_description}"
+  defined_tags        = var.defined_tags
+  freeform_tags       = var.freeform_tags
   lifecycle {
     ignore_changes = [defined_tags, freeform_tags]
   }
@@ -45,8 +43,8 @@ resource "oci_iot_digital_twin_model" "this" {
   count = var.iot_digital_twin_model_spec == null ? 0 : 1
 
   iot_domain_id = oci_iot_iot_domain.this.id
-  display_name  = "iot-mdl${local.environment_name}-${local.region_short_name}"
-  description   = "Digital Twin Model${local.environment_description}"
+  display_name  = "${local.org_name}-${var.app_id}-iotmdl-${local.region_short_name}"
+  description   = "Digital Twin Model for ${var.app_id}${local.org_description}"
   spec = jsonencode(
     merge(
       jsondecode(file("${path.module}/data/${var.iot_digital_twin_model_spec}")),
@@ -71,8 +69,8 @@ resource "oci_iot_digital_twin_adapter" "this" {
   count = var.iot_digital_twin_model_spec == null ? 0 : 1
 
   iot_domain_id         = oci_iot_iot_domain.this.id
-  display_name          = "iot-adptr${local.environment_name}-${local.region_short_name}"
-  description           = "Digital Twin Adapter${local.environment_description}"
+  display_name          = "${local.org_name}-${var.app_id}-iotadptr-${local.region_short_name}"
+  description           = "Digital Twin Adapter for ${var.app_id}${local.org_description}"
   digital_twin_model_id = oci_iot_digital_twin_model.this[0].id
 
   dynamic "inbound_envelope" {
@@ -82,7 +80,7 @@ resource "oci_iot_digital_twin_adapter" "this" {
       dynamic "envelope_mapping" {
         for_each = contains(keys(local.iot_digital_twin_adapter_envelope), "envelopeMapping") ? { envelope_mapping = true } : {}
         content {
-          time_observed = try(local.iot_digital_twin_adapter_envelope.envelopeMapping.time_observed, null)
+          time_observed = try(local.iot_digital_twin_adapter_envelope.envelopeMapping.timeObserved, null)
         }
       }
       dynamic "reference_payload" {

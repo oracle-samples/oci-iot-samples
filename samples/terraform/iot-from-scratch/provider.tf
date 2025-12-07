@@ -15,7 +15,7 @@ terraform {
     oci = {
       # Minimum version required to support the IoT Platform resources
       source  = "oracle/oci"
-      version = "~> 7.0, >= 7.22.0"
+      version = "~> 7.0, >= 7.27.0"
     }
     local = {
       source  = "hashicorp/local"

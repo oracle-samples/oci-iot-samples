@@ -10,8 +10,8 @@
 
 # Locals used for resource naming conventions.
 locals {
-  environment_name        = "-${lower(replace(var.environment_id, " ", "-"))}"
-  environment_description = " (${var.environment_id})"
+  org_name        = lower(replace(var.org_id, " ", ""))
+  org_description = " (${var.org_id})"
   region_short_name = [
     for region in data.oci_identity_regions.all.regions :
     lower(region.key) if region.name == var.region
@@ -43,16 +43,16 @@ locals {
   iot_digital_twin_instances = merge(
     {
       for index, secret in oci_vault_secret.this :
-      "${var.iot_digital_twin_basic_name}-${format("%02d", index + 1)}" => {
-        description  = "Digital Twin ${var.iot_digital_twin_basic_name}-${format("%02d", index + 1)}"
+      "${local.org_name}-${var.app_id}-iotdti-${local.region_short_name}-${var.iot_digital_twin_basic_name}-${format("%02d", index + 1)}" => {
+        description  = "Digital Twin Instance ${var.iot_digital_twin_basic_name}-${format("%02d", index + 1)}"
         external_key = secret.metadata.externalKey
         auth_id      = secret.id
       }
     },
     {
       for index, cert in oci_certificates_management_certificate.this :
-      "${var.iot_digital_twin_cert_name}-${format("%02d", index + 1)}" => {
-        description  = "Digital Twin ${var.iot_digital_twin_cert_name}-${format("%02d", index + 1)}"
+      "${local.org_name}-${var.app_id}-iotdti-${local.region_short_name}-${var.iot_digital_twin_cert_name}-${format("%02d", index + 1)}" => {
+        description  = "Digital Twin Instance ${var.iot_digital_twin_cert_name}-${format("%02d", index + 1)}"
         external_key = cert.subject[0].common_name
         auth_id      = cert.id
       }

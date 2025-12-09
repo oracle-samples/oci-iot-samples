@@ -267,7 +267,7 @@ oci certs-mgmt certificate create-certificate-issued-by-internal-ca \
     --name ${dt_cert_display_name} \
     --certificate-profile-type TLS_CLIENT \
     --issuer-certificate-authority-id ${sub_ca_id} \
-    --subject '{ "dt_cert_common_name": "'${common_name}'", "country": "US" }' \
+    --subject '{ "commonName": "'${dt_cert_common_name}'", "country": "US" }' \
     --validity '{ "timeOfValidityNotAfter": "'$(${date_cmd} -u -d "+1 year" +"%Y-%m-%dT%H:%M:%S.%3NZ")'" }' \
     --certificate-rules '[{
       "ruleType": "CERTIFICATE_RENEWAL_RULE",

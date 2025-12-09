@@ -17,9 +17,14 @@ variable "region" {
   description = "Region where resources are created"
   type        = string
 }
-variable "environment_id" {
-  description = "The environment ID will be used in naming resources"
+variable "org_id" {
+  description = "The organization ID will be used in naming resources"
   type        = string
+}
+variable "app_id" {
+  description = "The application ID will be used in naming resources"
+  type        = string
+  default     = "iot"
 }
 variable "freeform_tags" {
   description = "Freeform tags to add when creating resources"
@@ -238,7 +243,7 @@ variable "configure_ords_data_access" {
 variable "identity_domain_name" {
   description = <<-DESC
     Name of your Identity Domain.
-    Required for ORDS and Direct Database data access if you use a non-default Identity Domain.
+    Required for ORDS data access if you use a non-default Identity Domain.
     DESC
   type        = string
   default     = "Default"

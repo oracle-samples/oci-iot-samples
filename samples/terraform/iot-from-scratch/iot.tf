@@ -10,8 +10,8 @@
 
 resource "oci_iot_iot_domain_group" "this" {
   compartment_id = local.compartment_id
-  display_name   = "iot-dmn-grp${local.environment_name}-${local.region_short_name}"
-  description    = "Domain Group${local.environment_description}"
+  display_name   = "${local.org_name}-${var.app_id}-iotdmngrp-${local.region_short_name}"
+  description    = "IoT Domain Group for ${var.app_id}${local.org_description}"
 
   defined_tags  = var.defined_tags
   freeform_tags = var.freeform_tags
@@ -24,14 +24,12 @@ resource "oci_iot_iot_domain_group" "this" {
 }
 
 resource "oci_iot_iot_domain" "this" {
-  #Required
   compartment_id      = local.compartment_id
   iot_domain_group_id = oci_iot_iot_domain_group.this.id
-  display_name        = "iot-dmn${local.environment_name}-${local.region_short_name}"
-  description         = "Domain${local.environment_description}"
-
-  defined_tags  = var.defined_tags
-  freeform_tags = var.freeform_tags
+  display_name        = "${local.org_name}-${var.app_id}-iotdmn-${local.region_short_name}"
+  description         = "IoT Domain for ${var.app_id}${local.org_description}"
+  defined_tags        = var.defined_tags
+  freeform_tags       = var.freeform_tags
   lifecycle {
     ignore_changes = [defined_tags, freeform_tags]
   }
@@ -45,8 +43,8 @@ resource "oci_iot_digital_twin_model" "this" {
   count = var.iot_digital_twin_model_spec == null ? 0 : 1
 
   iot_domain_id = oci_iot_iot_domain.this.id
-  display_name  = "iot-mdl${local.environment_name}-${local.region_short_name}"
-  description   = "Digital Twin Model${local.environment_description}"
+  display_name  = "${local.org_name}-${var.app_id}-iotmdl-${local.region_short_name}"
+  description   = "Digital Twin Model for ${var.app_id}${local.org_description}"
   spec = jsonencode(
     merge(
       jsondecode(file("${path.module}/data/${var.iot_digital_twin_model_spec}")),
@@ -71,8 +69,8 @@ resource "oci_iot_digital_twin_adapter" "this" {
   count = var.iot_digital_twin_model_spec == null ? 0 : 1
 
   iot_domain_id         = oci_iot_iot_domain.this.id
-  display_name          = "iot-adptr${local.environment_name}-${local.region_short_name}"
-  description           = "Digital Twin Adapter${local.environment_description}"
+  display_name          = "${local.org_name}-${var.app_id}-iotadptr-${local.region_short_name}"
+  description           = "Digital Twin Adapter for ${var.app_id}${local.org_description}"
   digital_twin_model_id = oci_iot_digital_twin_model.this[0].id
 
   dynamic "inbound_envelope" {
@@ -82,7 +80,7 @@ resource "oci_iot_digital_twin_adapter" "this" {
       dynamic "envelope_mapping" {
         for_each = contains(keys(local.iot_digital_twin_adapter_envelope), "envelopeMapping") ? { envelope_mapping = true } : {}
         content {
-          time_observed = try(local.iot_digital_twin_adapter_envelope.envelopeMapping.time_observed, null)
+          time_observed = try(local.iot_digital_twin_adapter_envelope.envelopeMapping.timeObserved, null)
         }
       }
       dynamic "reference_payload" {
@@ -142,90 +140,49 @@ resource "oci_iot_digital_twin_instance" "this" {
 }
 
 ########## Data access ##########
-
-# As of today, the Terraform OCI provider cannot configure the IoT Domain Group
-# and Domain for data access.
-# As workaround we use the `terraform_data` resource to run the OCI CLI
+# Add dependencies to avoid concurrent data access resource creation
 
 ########## APEX data access ##########
-resource "terraform_data" "oci_iot_configure_data_access_apex" {
+resource "oci_iot_iot_domain_configure_data_access" "apex" {
   count = var.configure_apex_data_access ? 1 : 0
 
-  triggers_replace = {
-    iot_domain_id = oci_iot_iot_domain.this.id
-  }
-
-  provisioner "local-exec" {
-    when        = create
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<-CMD
-      oci iot domain configure-apex-data-access \
-          --iot-domain-id ${self.triggers_replace.iot_domain_id} \
-          --db-workspace-admin-initial-password "${var.apex_admin_initial_password}" \
-          --wait-for-state SUCCEEDED --wait-for-state FAILED
-    CMD
-  }
+  iot_domain_id                       = oci_iot_iot_domain.this.id
+  type                                = "APEX"
+  db_workspace_admin_initial_password = var.apex_admin_initial_password
 }
 
 ########## ORDS data access ##########
-resource "terraform_data" "oci_iot_configure_data_access_ords" {
+resource "oci_iot_iot_domain_configure_data_access" "ords" {
   count = var.configure_ords_data_access ? 1 : 0
 
-  triggers_replace = {
-    iot_domain_id = oci_iot_iot_domain.this.id
-  }
-
-  provisioner "local-exec" {
-    when        = create
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<-CMD
-      oci iot domain configure-ords-data-access  \
-          --iot-domain-id ${self.triggers_replace.iot_domain_id} \
-          --db-allowed-identity-domain-host "${local.identity_domain_endpoint}"  \
-          --wait-for-state SUCCEEDED --wait-for-state FAILED
-    CMD
-  }
+  iot_domain_id                   = oci_iot_iot_domain.this.id
+  type                            = "ORDS"
+  db_allowed_identity_domain_host = local.identity_domain_endpoint
+  depends_on = [
+    oci_iot_iot_domain_configure_data_access.apex
+  ]
 }
 
 ########## Direct database data access ##########
-resource "terraform_data" "oci_cli_configure_direct_database_access_db_vcn" {
+resource "oci_iot_iot_domain_group_configure_data_access" "direct" {
   count = var.configure_direct_database_access ? 1 : 0
 
-  triggers_replace = {
-    iot_domain_group_id = oci_iot_iot_domain_group.this.id
-    vcn_list_hash       = sensitive(join(",", var.db_allow_listed_vcn_ids))
-  }
-
-  provisioner "local-exec" {
-    when        = create
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<-CMD
-      oci iot domain-group configure-data-access  \
-          --iot-domain-group-id ${self.triggers_replace.iot_domain_group_id} \
-          --db-allow-listed-vcn-ids '${jsonencode(var.db_allow_listed_vcn_ids)}' \
-          --wait-for-state SUCCEEDED --wait-for-state FAILED
-    CMD
-  }
+  iot_domain_group_id     = oci_iot_iot_domain_group.this.id
+  db_allow_listed_vcn_ids = var.db_allow_listed_vcn_ids
+  depends_on = [
+    oci_iot_iot_domain_configure_data_access.ords
+  ]
 }
 
-resource "terraform_data" "oci_cli_configure_direct_database_access_db_groups" {
+resource "oci_iot_iot_domain_configure_data_access" "direct" {
   count = var.configure_direct_database_access ? 1 : 0
 
-  triggers_replace = {
-    iot_domain_id   = oci_iot_iot_domain.this.id
-    group_list_hash = sensitive(join(",", var.db_allow_listed_identity_group_names))
-  }
-
-  provisioner "local-exec" {
-    when        = create
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<-CMD
-      oci iot domain configure-direct-data-access \
-          --iot-domain-id ${self.triggers_replace.iot_domain_id} \
-          --db-allow-listed-identity-group-names '${jsonencode(local.prefixed_allow_listed_identity_groups)}' \
-          --wait-for-state SUCCEEDED --wait-for-state FAILED
-    CMD
-  }
+  iot_domain_id                        = oci_iot_iot_domain.this.id
+  type                                 = "DIRECT"
+  db_allow_listed_identity_group_names = local.prefixed_allow_listed_identity_groups
+  depends_on = [
+    oci_iot_iot_domain_group_configure_data_access.direct
+  ]
 }
 
 # Re-query IoT Domain Group to get database token scope and connect string
@@ -235,7 +192,7 @@ data "oci_iot_iot_domain_group" "this" {
 
   iot_domain_group_id = oci_iot_iot_domain_group.this.id
   depends_on = [
-    terraform_data.oci_cli_configure_direct_database_access_db_vcn
+    oci_iot_iot_domain_group_configure_data_access.direct
   ]
 }
 
@@ -246,6 +203,6 @@ data "oci_iot_iot_domain" "this" {
 
   iot_domain_id = oci_iot_iot_domain.this.id
   depends_on = [
-    terraform_data.oci_cli_configure_direct_database_access_db_groups
+    oci_iot_iot_domain_configure_data_access.direct
   ]
 }

@@ -17,8 +17,10 @@
 # Region where resources are created (Required)
 # region = "YOUR_OCI_REGION"
 
-# The environment ID will be used in naming resources (Required)
-# environment_id = "YOUR_ENVIRONMENT_ID"
+# The organization ID will be used in naming resources (Required)
+# org_id = "YOUR_ORG_ID"
+# The application ID will be used in naming resources (Optional, default: "iot")
+# app_id = "iot"
 
 # Freeform tags to add when creating resources (Optional)
 # freeform_tags = {
@@ -103,7 +105,7 @@
 # Output will show the API endpoints.
 # configure_ords_data_access = true
 
-# Name of your Identity Domain. For ORDS/direct DB access; only change if using non-default.
+# Name of your Identity Domain. For ORDS data access; only change if using non-default.
 # identity_domain_name = "Default"
 
 # Compartment OCID where your Identity Domain resides (if not in root, for non-default domain)

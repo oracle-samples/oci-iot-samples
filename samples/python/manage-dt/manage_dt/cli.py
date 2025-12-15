@@ -77,7 +77,9 @@ def validate_digital_twin(
 )
 @click.option(
     "--auth",
-    type=click.Choice(["api_key", "instance_principal", "resource_principal"]),
+    type=click.Choice(
+        ["api_key", "instance_principal", "resource_principal", "security_token"]
+    ),
     help="The type of auth to use for the API request.",
     default=os.getenv("OCI_CLI_AUTH", "api_key"),
     show_default=True,

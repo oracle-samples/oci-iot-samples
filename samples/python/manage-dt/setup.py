@@ -20,7 +20,7 @@ with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="manage_dt",
-    version="0.0.2",
+    version="0.0.3",
     description="Manage Digital Twins sample script",
     long_description=long_description,
     long_description_content_type="text/markdown",

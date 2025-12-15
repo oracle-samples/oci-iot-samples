@@ -13,6 +13,7 @@ import os
 from typing import Tuple
 
 from oci import config as oci_config
+from oci import signer as oci_signer
 from oci.auth import signers as oci_auth_signers
 
 
@@ -79,6 +80,20 @@ def get_oci_config(
                 "signer": oci_auth_signers.get_resource_principals_signer(),
             }
             config = {}
+        case "security_token":
+            logger.debug("OCI authentication: Session Token")
+            config = oci_config.from_file(profile_name=profile)
+            if os.getenv("OCI_CLI_TENANCY"):
+                logger.debug("Overriding tenancy OCID")
+                config["tenancy"] = os.getenv("OCI_CLI_TENANCY")
+            token_file = config["security_token_file"]
+            token = None
+            with open(token_file, "r") as f:
+                token = f.read()
+            private_key = oci_signer.load_private_key_from_file(config["key_file"])
+            signer = {
+                "signer": oci_auth_signers.SecurityTokenSigner(token, private_key),
+            }
         case _:
             raise ValueError(f"unsupported auth scheme {auth}")
     return config, signer

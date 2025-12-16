@@ -2,6 +2,12 @@
 
 This APEX application serves as a dashboard for monitoring IoT devices and messages.
 
+## Upgrading
+
+If you are upgrading follow the instructions in Part One of Setup. The new version
+of iot_explorer.sql and iot_explorer.app.sql can be installed in the same schema as
+the exising version. No settings will be lost during the upgrade process.
+
 ## Prerequisites
 
 1. Setup of IoT Platform. [IoT Platform Getting Started](https://docs.oracle.com/en-us/iaas/Content/internet-of-things/overview.htm)

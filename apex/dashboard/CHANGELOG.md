@@ -1,6 +1,19 @@
 <!-- markdownlint-disable MD024 -->
 # IoT Explorer - Release Notes
 
+## December 16th, 2025
+
+### New Features
+
+- Altered report layout to better reflect OCI Console design.
+- Fixed spelling errors.
+- Implemented version number on Apex pages.
+
+### Changes
+
+- functions in iot_objects package was changed to make them
+more versatile
+
 ## November 20th, 2025
 
 ### New Features

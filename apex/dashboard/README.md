@@ -14,7 +14,7 @@ the exising version. No settings will be lost during the upgrade process.
 
 1. Setup of IoT Platform. [IoT Platform Getting Started](https://docs.oracle.com/en-us/iaas/Content/internet-of-things/overview.htm)
 2. Allow access to APEX. [APEX Setup](https://docs.oracle.com/en-us/iaas/Content/internet-of-things/connect-iot-apex.htm)
-3. Create an APEX user with the developer roll to install and access the
+3. Create an APEX user with the developer/administrator role to install and access the
 application.
 [APEX Administration Guide](https://docs.oracle.com/en/database/oracle/apex/24.2/aeadm/managing-users-across-an-application-express-instance.html#GUID-CE23292D-05D1-4E79-BF40-8BC31E74E6C8).
 
@@ -148,7 +148,7 @@ application.
 3. Select the iot_explorer.app.sql file.
 4. Click the "Next" button.
 5. Set the "Parsing Schema" to your workspace (e.g., ****************__wksp).
-6. You may either reuse the application number or allow APEX to auto-assign a new
+6. You may reuse the application number or allow APEX to auto-assign a new
 application number.
 7. Click "Install Application".
 

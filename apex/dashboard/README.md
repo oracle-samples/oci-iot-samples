@@ -2,6 +2,8 @@
 
 This APEX application serves as a dashboard for monitoring IoT devices and messages.
 
+Cloning this repository requires the git-lfs extention. Available at [git-lfs.com](https://git-lfs.com/).
+
 ## Upgrading
 
 If you are upgrading follow the instructions in Part One of Setup. The new version
@@ -12,7 +14,8 @@ the exising version. No settings will be lost during the upgrade process.
 
 1. Setup of IoT Platform. [IoT Platform Getting Started](https://docs.oracle.com/en-us/iaas/Content/internet-of-things/overview.htm)
 2. Allow access to APEX. [APEX Setup](https://docs.oracle.com/en-us/iaas/Content/internet-of-things/connect-iot-apex.htm)
-3. Create an APEX user to install and access the application.
+3. Create an APEX user with the developer/administrator role to install and access the
+application.
 [APEX Administration Guide](https://docs.oracle.com/en/database/oracle/apex/24.2/aeadm/managing-users-across-an-application-express-instance.html#GUID-CE23292D-05D1-4E79-BF40-8BC31E74E6C8).
 
 ### Enabling Optional Features
@@ -140,13 +143,14 @@ script for creating the following objects.
 The following will walk you through the installation of the IoT Explorer
 application.
 
-1. Click "Import".
-2. Select the iot_explorer.app.sql file.
-3. Click the "Next" button.
-4. Set the "Parsing Schema" to your workspace (e.g., ****************__wksp).
-5. You may either reuse the application number or allow APEX to auto-assign a new
+1. Click on "App Builder".
+2. Click "Import".
+3. Select the iot_explorer.app.sql file.
+4. Click the "Next" button.
+5. Set the "Parsing Schema" to your workspace (e.g., ****************__wksp).
+6. You may reuse the application number or allow APEX to auto-assign a new
 application number.
-6. Click "Install Application".
+7. Click "Install Application".
 
 ## Running the Application
 

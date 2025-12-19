@@ -65,7 +65,7 @@ Copy `config.distr.py` to `config.py` and set the following variables:
 - `db_token_scope`: The dbTokenScope property of your IoT Domain Group.
 - `iot_domain_short_name`: The hostname part of the deviceHost property of your IoT Domain.
 - `oci_auth_type`: The OCI Authentication type. Must be either "ConfigFileAuthentication"
-   for API Key authentication or "InstancePrincipal".
+   for API Key authentication,  "InstancePrincipal" or "SecurityToken".
 - `oci_profile`: OCI CLI profile to use for token retrieval when using API Key authentication.
 - `row_count`: The number of rows retrieved by the sample queries.
 - `thick_mode`: Set to `True` to use the `oracledb` Thick mode driver.

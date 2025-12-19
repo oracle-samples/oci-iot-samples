@@ -88,7 +88,7 @@ token_based_auth = {
     "auth_type": config.oci_auth_type,
     "scope": config.db_token_scope,
 }
-if config.oci_auth_type == "ConfigFileAuthentication":
+if config.oci_auth_type in ["ConfigFileAuthentication", "SecurityToken"]:
     token_based_auth["profile"] = config.oci_profile
 
 extra_connect_params = {}

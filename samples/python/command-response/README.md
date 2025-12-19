@@ -15,6 +15,14 @@ It will listen for commands by subscribing to topics ending in `/cmd` and acknow
 by sending a response.
 The script will terminate when it receives a _shutdown_ command or a keyboard interrupt (Control-C).
 
+Notes:
+
+- The MQTT client must connect with `clean_session` set to false. This informs the
+  IoT Platform that the device accepts commands. The platform will also ensure messages
+  are retained while the device is disconnected.
+- The command handler runs in a separate thread so that the on_message handler returns
+  quickly and does not block the MQTT client loop.
+
 ## Prerequisites
 
 Install the Python dependencies

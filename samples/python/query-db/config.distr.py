@@ -16,7 +16,8 @@ db_token_scope = "urn:oracle:db::id::<Compartment OCID>"
 #     jq -r '.'data."device-host"' | split(".")[0]'
 iot_domain_short_name = "<Domain SHort Name>"
 
-# OCI Authentication type. Must be either "ConfigFileAuthentication" or "InstancePrincipal"
+# OCI Authentication type. Must be either "ConfigFileAuthentication", "InstancePrincipal"
+# or "SecurityToken"
 # oci_auth_type = "ConfigFileAuthentication"
 oci_auth_type = "InstancePrincipal"
 

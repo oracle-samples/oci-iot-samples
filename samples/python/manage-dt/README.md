@@ -162,7 +162,7 @@ Options:
   -d, --debug                     Debug mode
   --profile TEXT                  The profile in the config file to load.
                                   [default: wim-iot-fra]
-  --auth [api_key|instance_principal|resource_principal]
+  --auth [api_key|instance_principal|resource_principal|security_token]
                                   The type of auth to use for the API request.
                                   [default: api_key]
   --data-dir DIRECTORY            Data directory  [default: ./data]

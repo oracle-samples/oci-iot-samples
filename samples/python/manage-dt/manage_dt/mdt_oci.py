@@ -83,9 +83,6 @@ def get_oci_config(
         case "security_token":
             logger.debug("OCI authentication: Session Token")
             config = oci_config.from_file(profile_name=profile)
-            if os.getenv("OCI_CLI_TENANCY"):
-                logger.debug("Overriding tenancy OCID")
-                config["tenancy"] = os.getenv("OCI_CLI_TENANCY")
             token_file = config["security_token_file"]
             token = None
             with open(token_file, "r") as f:

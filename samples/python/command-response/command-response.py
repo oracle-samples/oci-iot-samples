@@ -12,6 +12,7 @@ DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
 import json
 import os
+import queue
 import sys
 import threading
 import time
@@ -39,12 +40,13 @@ def on_connect(client, userdata, flags, reason_code, properties=None):
     client.subscribe("#", qos=config.qos)
 
 
-# Callback for MQTT message received event.
-def on_message(client, userdata, message, properties=None):
-    topic = message.topic
-    payload = message.payload.decode()
-    state = userdata
-    if topic.endswith("/cmd"):
+# Command handler thread
+def command_handler():
+    while True:
+        try:
+            topic, payload, state = command_handler_queue.get()
+        except queue.ShutDown:
+            break
         print(f"Received command on {topic}: {payload}")
         # Command handling logic goes here.
         # For this example, only the shutdown command is handled, which will
@@ -63,13 +65,28 @@ def on_message(client, userdata, message, properties=None):
         ack_msg = json.dumps(
             {"status": "acknowledged", "time": current_epoch_microseconds()}
         )
-        state["ack_msg_info"].append(
-            client.publish(topic=rsp_topic, payload=ack_msg, qos=config.qos)
-        )
+        rc_pub = client.publish(topic=rsp_topic, payload=ack_msg, qos=config.qos)
+        rc_pub.wait_for_publish()
+        print(f"Finished command handling for: {topic}")
+        command_handler_queue.task_done()
+
+
+# Callback for MQTT message received event.
+def on_message(client, userdata, message, properties=None):
+    topic = message.topic
+    payload = message.payload.decode()
+    state = userdata
+    if topic.endswith("/cmd"):
+        command_handler_queue.put((topic, payload, state))
 
 
 if config.auth_type not in ("basic", "cert"):
     raise ValueError("auth_type must be 'basic' or 'cert'")
+
+# Initialize queue and start command handler thread
+command_handler_queue = queue.Queue()
+command_handler_thread = threading.Thread(target=command_handler)
+command_handler_thread.start()
 
 client = mqtt.Client(
     client_id=config.client_id,  # Ensure client_id is set for persistent sessions.
@@ -78,7 +95,6 @@ client = mqtt.Client(
     callback_api_version=mqtt.CallbackAPIVersion.VERSION2,  # type: ignore
 )
 state = {
-    "ack_msg_info": [],
     "shutdown_event": threading.Event(),
 }
 client.user_data_set(state)
@@ -121,19 +137,14 @@ try:
         rc_pub.wait_for_publish()
         count += 1
         time.sleep(config.message_delay)
-        # Drain ack_msg_info
-        while state["ack_msg_info"]:
-            state["ack_msg_info"].pop(0).wait_for_publish()
 
 except KeyboardInterrupt:
     print("\nInterrupted by user. Exiting...")
 
-# Wait to process any potential /cmd messages before exit.
-print("Waiting 2 seconds to process possible /cmd messages...")
-time.sleep(2)
-# Drain ack_msg_info
-while state["ack_msg_info"]:
-    state["ack_msg_info"].pop(0).wait_for_publish()
+# Wait for the queue to drain
+print("Waiting for commands to be processed...")
+command_handler_queue.shutdown()
+command_handler_thread.join()
 
 # Tear down the client and exit.
 client.loop_stop()

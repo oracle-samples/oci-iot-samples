@@ -137,4 +137,5 @@
 # List of (Dynamic) Groups to allowlist for direct database access.
 # If the (Dynamic) Group is not in the Default Identity Domain, it must be prefixed
 # by the Identity Domain name. Eg.: "IdentityDomainName/IdentityGroupName"
+# If the group is not in this tenancy, prefix by "<other tenancy OCID>:"
 # db_allow_listed_identity_group_names =[]

@@ -64,6 +64,6 @@ locals {
 locals {
   prefixed_allow_listed_identity_groups = [
     for group_name in var.db_allow_listed_identity_group_names :
-    "${var.tenancy_id}:${group_name}"
+    strcontains(group_name, ":") ? group_name : "${var.tenancy_id}:${group_name}"
   ]
 }

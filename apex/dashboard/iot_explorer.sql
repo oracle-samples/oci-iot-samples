@@ -1409,6 +1409,9 @@ create or replace package iot_objects as
   -- instance to be updated and JSON clob body 
   function update_instance(p_ocid varchar2, p_body clob) return clob;
 
+    -- Calls REST API to retrieve the content from an instance
+  function instance_get_content(p_ocid varchar2) return clob;
+
   -- Constructs the API JSON body to create a digital twin model 
   function model_api_body(
     p_iot_domain_ocid varchar2 default null, /*only needed on create request*/
@@ -1706,6 +1709,39 @@ create or replace package body iot_objects as
           return 'Error: ' || sqlerrm; 
 
   end; 
+
+
+  -- Calls REST API to retrieve the content from an instance
+  function instance_get_content(p_ocid varchar2) 
+    return clob
+    is
+    v_response dbms_cloud_types.resp; 
+    v_return clob; 
+    v_config json_object_t; 
+
+    begin
+
+      v_config := iot_apex.iot_config; -- Load config
+
+      v_response := dbms_cloud.send_request(
+          credential_name    => v_config.get_string('credentials'), -- Credential name from the configuration
+          uri                => 'https://iot.'||
+                                v_config.get_string('tenancy_region')||
+                                '.oci.oraclecloud.com/20250531/digitalTwinInstances/'||
+                                p_ocid||
+                                '/content', -- URI for the IoT domain group connection API
+          method             => 'GET'         -- HTTP method (GET)
+      );
+
+      v_return := dbms_cloud.get_response_text(resp => v_response); --convert responce to clob
+
+      return v_return; 
+
+      exception 
+        when others then 
+          -- Log any errors that occur during the execution of this function 
+          return 'Error: ' || sqlerrm; 
+  end;
 
 
   -- Constructs the API JSON body to create a digital twin model

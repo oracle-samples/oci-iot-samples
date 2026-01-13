@@ -5,6 +5,18 @@
 
 ### New Features
 
+- Added Current Instance Content to the Instance Detail page.
+
+### Changes
+
+- Created Relationships page.
+- Cleaned up command report on Instance Detail page.
+- Add display name to the top of Adapter and Incatance detail pages.
+
+## December 16th, 2025
+
+### New Features
+
 - Altered report layout to better reflect OCI Console design.
 - Fixed spelling errors.
 - Implemented version number on Apex pages.

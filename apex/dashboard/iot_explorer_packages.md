@@ -137,12 +137,7 @@ null, p_action varchar2 default 'create', p_ocid varchar2 default null)`
       - `p_ocid` - the ocid of the object to be updated.
       - `p_body` - the JSON CLOB body for the instance update request.
     - Return Value: The response from the API as a CLOB.
-5. `IOT_OBJECTS.instance_get_content(p_ocid varchar2) return clob;`
-    - Description: Calls REST API to retrieve the content from an instance.
-    - Parameters:
-      - `p_ocid` - the ocid of the instance to retrieve the content.
-    - Return Value: The response from the API as a CLOB.
-6. `IOT_OBJECTS.model_api_body(p_iot_domain_ocid varchar2 default null,
+5. `IOT_OBJECTS.model_api_body(p_iot_domain_ocid varchar2 default null,
 p_description varchar2 default null, p_display_name varchar2, p_context
 varchar2, p_contents clob, p_freeform_tags clob default null, p_dtdl_id
 varchar2 default null, p_ocid varchar2 default null)`
@@ -157,7 +152,7 @@ varchar2 default null, p_ocid varchar2 default null)`
       - `p_dtdl_id` - the DTDL ID (optional).
       - `p_ocid` - ocid of object when updating or deleting.
     - Return Value: A JSON CLOB representing the model API body.
-7. `IOT_OBJECTS.model_cli(p_iot_domain_ocid varchar2 default null,
+6. `IOT_OBJECTS.model_cli(p_iot_domain_ocid varchar2 default null,
 p_description varchar2 default null, p_display_name varchar2, p_context
 varchar2, p_contents clob, p_freeform_tags clob default null, p_dtdl_id
 varchar2 default null, p_action varchar2 default 'create', p_ocid varchar2
@@ -174,18 +169,18 @@ default null)`
       - `p_action` - operation preformed 'create' or 'update'.
       - `p_ocid` - ocid of object when updating or deleting.
     - Return Value: A CLOB representing the CLI command.
-8. `IOT_OBJECTS.create_model(p_body clob)`
+7. `IOT_OBJECTS.create_model(p_body clob)`
     - Description: Calls the REST API to create a digital twin model.
     - Parameters:
       - `p_body` - the JSON CLOB body for the model creation request.
     - Return Value: The response from the API as a CLOB.
-9. `IOT_OBJECTS.update_model(p_ocid varchar2, p_body clob) return clob;`
+8. `IOT_OBJECTS.update_model(p_ocid varchar2, p_body clob) return clob;`
     - Description: Calls the REST API to update a digital twin model.
     - Parameters:
       - `p_ocid` - the ocid of the object to be updated.
       - `p_body` - the JSON CLOB body for the model update request.
     - Return Value: The response from the API as a CLOB.
-10. `IOT_OBJECTS.adapter_api_body(p_iot_domain_ocid varchar2 default null,
+9. `IOT_OBJECTS.adapter_api_body(p_iot_domain_ocid varchar2 default null,
 p_dt_model_ocid varchar2, p_display_name varchar2, p_description varchar2
 default null`
     - Description: Constructs a JSON API payload for digital twin adapter
@@ -196,7 +191,7 @@ default null`
       - `p_display_name` - the display name.
       - `p_description` - the description (optional).
     - Return Value: A JSON CLOB representing the adapter API body.
-11. `IOT_OBJECTS.adapter_cli(p_iot_domain_ocid varchar2 default null,
+10. `IOT_OBJECTS.adapter_cli(p_iot_domain_ocid varchar2 default null,
 p_dt_model_ocid varchar2, p_display_name varchar2, p_description varchar2
 default null, p_action varchar2 default 'create', p_ocid varchar2 default
 null)`
@@ -209,18 +204,18 @@ null)`
       - `p_action` - operation preformed 'create', 'update', or 'delete'.
       - `p_ocid` - ocid of object when updating or deleting.
     - Return Value: A CLOB representing the CLI command.
-12. `IOT_OBJECTS.create_adapter(p_body clob)`
+11. `IOT_OBJECTS.create_adapter(p_body clob)`
     - Description: Calls the REST API to create a digital twin adapter.
     - Parameters:
       - `p_body` - the JSON CLOB body for the adapter creation request.
     - Return Value: The response from the API as a CLOB.
-13. `IOT_OBJECTS.update_adapter(p_ocid varchar2, p_body clob) return clob;`
+12. `IOT_OBJECTS.update_adapter(p_ocid varchar2, p_body clob) return clob;`
     - Description: Calls the REST API to update a digital twin adapter.
     - Parameters:
       - `p_ocid` - the ocid of the object to be updated.
       - `p_body` - the JSON CLOB body for the adapter update request.
     - Return Value: The response from the API as a CLOB.
-14. `IOT_OBJECTS.delete_object(p_object_ocid varchar2)`
+13. `IOT_OBJECTS.delete_object(p_object_ocid varchar2)`
     - Description: Calls the REST API to delete a digital twin object.
     - Parameters:
       - `p_object_ocid` - the OCID of the object to be deleted.

@@ -1,7 +1,13 @@
 <!-- markdownlint-disable MD024 -->
 # IoT Explorer - Release Notes
 
-## December 16th, 2025
+## January 14th, 2026
+
+### Changes
+
+- Fixed bug in Current Instance Content on Instance Detail page.
+
+## January 13th, 2026
 
 ### New Features
 

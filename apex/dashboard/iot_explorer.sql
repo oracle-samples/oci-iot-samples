@@ -2166,6 +2166,8 @@ create or replace package body iot_objects as
         v_uri := v_uri || '.oci.oraclecloud.com/20250531/digitalTwinAdapters/'||p_object_ocid;
       elsif instr(p_object_ocid,'.iotdigitaltwininstance.') > 0 then
         v_uri := v_uri || '.oci.oraclecloud.com/20250531/digitalTwinInstances/'||p_object_ocid;
+      elsif instr(p_object_ocid,'.iotdigitaltwinrelationship.') > 0 then
+        v_uri := v_uri || '.oci.oraclecloud.com/20250531/digitalTwinRelationships/'||p_object_ocid;
       else
         raise_application_error(-20001, 'OCID prefix not recognised as an IoT Object type.');
       end if;

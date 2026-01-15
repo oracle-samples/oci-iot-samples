@@ -1,6 +1,13 @@
 <!-- markdownlint-disable MD024 -->
 # IoT Explorer - Release Notes
 
+## January 15th, 2026
+
+### Changes
+
+- Changed report columns and behaviors to imulate upcoming
+OCI Console release
+
 ## January 14th, 2026
 
 ### Changes

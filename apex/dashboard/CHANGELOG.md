@@ -5,7 +5,7 @@
 
 ### Changes
 
-- Changed report columns and behaviors to imulate upcoming 
+- Changed report columns and behaviors to imulate upcoming
 OCI Console release
 
 ## January 14th, 2026

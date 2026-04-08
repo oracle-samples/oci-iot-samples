@@ -61,6 +61,7 @@ as well as the messages received.
 | Sending observed time in device payload              | [Sample](./samples/script/time-observed/) |              | [Sample](./samples/C/M5Stack/) |              |
 | Raw command-response scenario                        |                       | [Sample](./samples/python/command-response/)  | [Sample](./samples/C/M5Stack/) |              |
 | Direct database connection — query telemetry         | [Sample](./samples/script/query-db/) | [Sample](./samples/python/query-db/)  |              | [Sample](./samples/java/src/main/java/com/oracle/iot/samples/SampleDataAccess.java) |
+| Archive IoT Domain data to Object Storage            | [Sample](./samples/sql/archive-domain/) | [Sample](./samples/python/archive-domain/) |              |              |
 | Streaming IoT Platform data (Database queues)        |                       | [Sample](./samples/python/queues/)  |              | [Sample](./samples/java/src/main/java/com/oracle/iot/samples/SampleDataStreaming.java) |
 
 ## End-to-End Samples

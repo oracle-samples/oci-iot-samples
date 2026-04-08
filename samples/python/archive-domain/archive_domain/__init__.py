@@ -1,0 +1,2 @@
+"""Archive-domain sample package."""
+

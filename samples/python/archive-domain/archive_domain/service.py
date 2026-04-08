@@ -131,14 +131,26 @@ class ArchiveService:
                     "No archive executor is configured. Use --dry-run or provide a runtime executor."
                 )
 
-            dataset_results.append(
-                self.executor.execute_dataset(
-                    dataset=dataset,
-                    dataset_plan=plan_result.plan.datasets[dataset],
-                    mode=mode,
-                    object_prefix=object_prefix,
+            try:
+                dataset_results.append(
+                    self.executor.execute_dataset(
+                        dataset=dataset,
+                        dataset_plan=plan_result.plan.datasets[dataset],
+                        mode=mode,
+                        object_prefix=object_prefix,
+                    )
                 )
-            )
+            except Exception as exc:
+                dataset_results.append(
+                    DatasetResult(
+                        name=dataset,
+                        status="failed",
+                        export_mode=mode,
+                        export_format=export_format_for_dataset(dataset),
+                        object_prefix=object_prefix,
+                        error_message=str(exc),
+                    )
+                )
 
         manifest_object_name = build_manifest_object_name(
             self.config.object_storage.manifest_prefix, run_id

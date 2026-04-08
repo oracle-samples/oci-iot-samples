@@ -1,7 +1,7 @@
 """SQL builders for archive-domain."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 @dataclass(frozen=True)
@@ -103,8 +103,30 @@ def build_dbms_cloud_export_statement(
         "credential_name": credential_name,
         "file_uri_list": file_uri_list,
         "export_format": export_format,
-        "query_text": dataset_query.sql_text,
+        "query_text": _render_dbms_cloud_query_text(dataset_query),
     }
-    binds.update(dataset_query.binds)
     return statement, binds
 
+
+def _render_dbms_cloud_query_text(dataset_query: DatasetQuery) -> str:
+    """Inline timestamp literals because DBMS_CLOUD receives the query as a string."""
+    query_text = dataset_query.sql_text
+    for bind_name, bind_value in dataset_query.binds.items():
+        query_text = query_text.replace(
+            f":{bind_name}", _oracle_timestamp_tz_literal(bind_value)
+        )
+    return query_text
+
+
+def _oracle_timestamp_tz_literal(value: datetime) -> str:
+    """Render a timezone-aware datetime as an Oracle TIMESTAMP WITH TIME ZONE literal."""
+    if value.tzinfo is None:
+        raise ValueError("Timezone-aware timestamps are required for archive queries")
+
+    normalized = value.astimezone(timezone.utc).isoformat(timespec="microseconds")
+    return (
+        "to_timestamp_tz("
+        f"'{normalized}', "
+        '\'YYYY-MM-DD"T"HH24:MI:SS.FF6TZH:TZM\''
+        ")"
+    )

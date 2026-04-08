@@ -1,5 +1,7 @@
 """Archive planning helpers."""
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 
 from .models import VALID_DATASETS, ArchivePlan, DatasetPlan

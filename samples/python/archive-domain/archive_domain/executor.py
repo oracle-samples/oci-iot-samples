@@ -34,7 +34,7 @@ def _normalize_value(value: Any) -> Any:
         return str(value)
     if isinstance(value, dict):
         return {key: _normalize_value(item) for key, item in value.items()}
-    if isinstance(value, list | tuple):
+    if isinstance(value, (list, tuple)):
         return [_normalize_value(item) for item in value]
     return value
 
@@ -111,7 +111,7 @@ class LiveArchiveExecutor:
                     for row in cursor:
                         record = {
                             column: _normalize_value(value)
-                            for column, value in zip(columns, row, strict=True)
+                            for column, value in zip(columns, row)
                         }
                         gzip_file.write(json.dumps(record, sort_keys=True).encode("utf-8"))
                         gzip_file.write(b"\n")

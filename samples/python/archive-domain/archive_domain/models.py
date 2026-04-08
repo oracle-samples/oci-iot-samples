@@ -1,5 +1,7 @@
 """Domain models for the archive-domain sample."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 

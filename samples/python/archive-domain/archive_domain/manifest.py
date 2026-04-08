@@ -16,7 +16,7 @@ def _to_jsonable(value: Any) -> Any:
         return value.isoformat().replace("+00:00", "Z")
     if isinstance(value, dict):
         return {key: _to_jsonable(item) for key, item in value.items()}
-    if isinstance(value, list | tuple):
+    if isinstance(value, (list, tuple)):
         return [_to_jsonable(item) for item in value]
     return value
 

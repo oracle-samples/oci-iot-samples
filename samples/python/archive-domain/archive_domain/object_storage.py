@@ -6,6 +6,7 @@ import json
 from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from typing import Any
+from urllib.parse import quote
 
 from .models import CheckpointState
 
@@ -37,6 +38,27 @@ def build_manifest_object_name(manifest_prefix: str, run_id: str) -> str:
     return f"{manifest_prefix.strip('/')}/run_id={run_id}.json"
 
 
+def build_object_name(object_prefix: str, filename: str) -> str:
+    """Build one object name beneath a dataset object prefix."""
+    return f"{object_prefix.strip('/')}/{filename}"
+
+
+def build_dbms_cloud_file_uri(
+    region: str,
+    namespace: str,
+    bucket_name: str,
+    object_prefix: str,
+    basename: str = "part",
+) -> str:
+    """Build the Object Storage URI used by DBMS_CLOUD.EXPORT_DATA."""
+    encoded_prefix = quote(object_prefix.strip("/"), safe="/=")
+    encoded_basename = quote(basename, safe="-.")
+    return (
+        f"https://objectstorage.{region}.oraclecloud.com/n/{namespace}/"
+        f"b/{bucket_name}/o/{encoded_prefix}/{encoded_basename}"
+    )
+
+
 def _serialize(payload: Any) -> bytes:
     if is_dataclass(payload):
         payload = asdict(payload)
@@ -54,6 +76,7 @@ class ObjectStorageStateStore:
     """Thin JSON-oriented wrapper around Object Storage operations."""
 
     def __init__(self, client: Any, namespace: str, bucket_name: str):
+        """Store the Object Storage client and target bucket details."""
         self.client = client
         self.namespace = namespace
         self.bucket_name = bucket_name

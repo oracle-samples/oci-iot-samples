@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from .models import ArchivePlan, DatasetPlan, VALID_DATASETS
+from .models import VALID_DATASETS, ArchivePlan, DatasetPlan
 
 
 def parse_datasets(value: str | None) -> tuple[str, ...]:

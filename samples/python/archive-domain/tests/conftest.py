@@ -1,8 +1,7 @@
 """Test helpers for archive-domain."""
 
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 SAMPLE_ROOT = Path(__file__).resolve().parents[1]
 

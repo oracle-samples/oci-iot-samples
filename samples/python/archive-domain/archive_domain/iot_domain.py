@@ -10,6 +10,7 @@ class IotDomainLookup:
     """Thin wrapper around an IoT client."""
 
     def __init__(self, client: Any, iot_domain_id: str):
+        """Capture the IoT client and target IoT Domain identifier."""
         self.client = client
         self.iot_domain_id = iot_domain_id
 

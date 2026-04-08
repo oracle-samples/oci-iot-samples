@@ -1,19 +1,19 @@
 from archive_domain.iot_domain import resolve_retention_days
 
 
-class FailingLookup:
+class _FailingLookup:
     def get_retention_days(self):
         raise RuntimeError("lookup failed")
 
 
-class PartialLookup:
+class _PartialLookup:
     def get_retention_days(self):
         return {"raw": 16, "historized": 30}
 
 
 def test_resolve_retention_days_falls_back_to_config_values():
     retention = resolve_retention_days(
-        lookup_client=FailingLookup(),
+        lookup_client=_FailingLookup(),
         configured_overrides={"raw": 10, "historized": 20, "rejected": 30},
     )
 
@@ -22,7 +22,7 @@ def test_resolve_retention_days_falls_back_to_config_values():
 
 def test_resolve_retention_days_merges_live_lookup_and_overrides():
     retention = resolve_retention_days(
-        lookup_client=PartialLookup(),
+        lookup_client=_PartialLookup(),
         configured_overrides={"raw": None, "historized": None, "rejected": 12},
     )
 

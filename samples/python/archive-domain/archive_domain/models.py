@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-
 VALID_DATASETS = ("raw", "historized", "rejected")
 
 
@@ -45,3 +44,24 @@ class DatasetResult:
     object_prefix: str | None = None
     object_names: tuple[str, ...] = ()
     error_message: str | None = None
+
+
+@dataclass(frozen=True)
+class PlanResult:
+    """Planned archive work plus supporting context."""
+
+    plan: ArchivePlan
+    retention_days: dict[str, int]
+    checkpoint: CheckpointState
+
+
+@dataclass(frozen=True)
+class RunResult:
+    """Result of one archive run."""
+
+    run_id: str
+    mode: str
+    plan_result: PlanResult
+    dataset_results: tuple[DatasetResult, ...]
+    checkpoint_advanced: bool
+    manifest_object_name: str | None = None

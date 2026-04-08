@@ -33,3 +33,15 @@ class CheckpointState:
 
     last_successful_run_at: datetime | None = None
 
+
+@dataclass(frozen=True)
+class DatasetResult:
+    """Outcome for one dataset in a run."""
+
+    name: str
+    status: str
+    export_mode: str | None = None
+    export_format: str | None = None
+    object_prefix: str | None = None
+    object_names: tuple[str, ...] = ()
+    error_message: str | None = None

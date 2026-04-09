@@ -121,9 +121,38 @@ create or replace package body archive_domain_pkg as
     return l_result;
   end blob_to_clob;
 
+  function clob_to_blob(
+    p_value in clob
+  ) return blob
+  is
+    l_result blob;
+    l_dest_offset integer := 1;
+    l_src_offset integer := 1;
+    l_lang_context integer := dbms_lob.default_lang_ctx;
+    l_warning integer;
+  begin
+    if p_value is null then
+      return null;
+    end if;
+
+    dbms_lob.createtemporary(l_result, true);
+    dbms_lob.converttoblob(
+      dest_lob     => l_result,
+      src_clob     => p_value,
+      amount       => dbms_lob.lobmaxsize,
+      dest_offset  => l_dest_offset,
+      src_offset   => l_src_offset,
+      blob_csid    => nls_charset_id('AL32UTF8'),
+      lang_context => l_lang_context,
+      warning      => l_warning
+    );
+    return l_result;
+  end clob_to_blob;
+
   function is_not_found_error(
     p_error_code in number
   ) return boolean
+  is
   begin
     return p_error_code = -20404;
   end is_not_found_error;
@@ -327,6 +356,241 @@ create or replace package body archive_domain_pkg as
       raise;
   end load_checkpoint;
 
+  function resolve_region(
+    p_config in clob
+  ) return varchar2
+  is
+    l_region varchar2(128);
+  begin
+    select coalesce(
+             json_value(p_config, '$.region' returning varchar2(128) null on error),
+             sys_context('USERENV', 'CLOUD_REGION')
+           )
+      into l_region
+      from dual;
+
+    return l_region;
+  end resolve_region;
+
+  function trim_slashes(
+    p_value in varchar2
+  ) return varchar2
+  is
+  begin
+    return regexp_replace(nvl(trim(p_value), ''), '^/+|/+$', '');
+  end trim_slashes;
+
+  function build_object_uri(
+    p_region      in varchar2,
+    p_namespace   in varchar2,
+    p_bucket_name in varchar2,
+    p_object_name in varchar2
+  ) return varchar2
+  is
+  begin
+    return 'https://objectstorage.' || p_region || '.oraclecloud.com/n/'
+           || p_namespace || '/b/' || p_bucket_name || '/o/' || p_object_name;
+  end build_object_uri;
+
+  function build_run_id(
+    p_run_at in timestamp with time zone
+  ) return varchar2
+  is
+  begin
+    return to_char(p_run_at at time zone 'UTC', 'YYYYMMDD"T"HH24MISS"Z"');
+  end build_run_id;
+
+  function resolve_zone(
+    p_dataset in varchar2
+  ) return varchar2
+  is
+  begin
+    case p_dataset
+      when 'historized' then
+        return 'silver';
+      when 'raw' then
+        return 'bronze';
+      when 'rejected' then
+        return 'bronze';
+      else
+        raise_application_error(-20021, 'unsupported dataset for zone mapping: ' || p_dataset);
+    end case;
+  end resolve_zone;
+
+  function build_dataset_object_prefix(
+    p_prefix            in varchar2,
+    p_domain_short_name in varchar2,
+    p_dataset           in varchar2,
+    p_run_id            in varchar2,
+    p_run_at            in timestamp with time zone
+  ) return varchar2
+  is
+    l_prefix varchar2(1024);
+    l_run_at_utc timestamp with time zone;
+    l_zone varchar2(30);
+  begin
+    l_prefix := trim_slashes(p_prefix);
+    l_run_at_utc := p_run_at at time zone 'UTC';
+    l_zone := resolve_zone(p_dataset);
+    return l_prefix
+           || '/domain=' || p_domain_short_name
+           || '/zone=' || l_zone || '/dataset=' || p_dataset
+           || '/year=' || to_char(l_run_at_utc, 'YYYY')
+           || '/month=' || to_char(l_run_at_utc, 'MM')
+           || '/day=' || to_char(l_run_at_utc, 'DD')
+           || '/hour=' || to_char(l_run_at_utc, 'HH24')
+           || '/run_id=' || p_run_id;
+  end build_dataset_object_prefix;
+
+  function build_manifest_object_name(
+    p_manifest_prefix in varchar2,
+    p_run_id          in varchar2
+  ) return varchar2
+  is
+  begin
+    return trim_slashes(p_manifest_prefix) || '/run_id=' || p_run_id || '.json';
+  end build_manifest_object_name;
+
+  function to_sql_timestamp_tz_literal(
+    p_value in timestamp with time zone
+  ) return varchar2
+  is
+  begin
+    return 'to_timestamp_tz('''
+           || to_char(p_value at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM')
+           || ''',''YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM'')';
+  end to_sql_timestamp_tz_literal;
+
+  function build_raw_query(
+    p_domain_short_name in varchar2,
+    p_window_start      in timestamp with time zone,
+    p_window_end        in timestamp with time zone
+  ) return clob
+  is
+    l_iot_schema varchar2(261);
+  begin
+    l_iot_schema := dbms_assert.simple_sql_name(
+      upper(trim(p_domain_short_name)) || '__IOT'
+    );
+
+    return 'select json_object('
+           || '''id'' value id, '
+           || '''digital_twin_instance_id'' value digital_twin_instance_id, '
+           || '''endpoint'' value endpoint, '
+           || '''time_received'' value json_scalar(to_char(time_received at time zone ''UTC'', ''YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'')), '
+           || '''content_base64'' value apex_web_service.blob2clobbase64(content), '
+           || '''content_encoding'' value ''base64'' '
+           || 'returning clob) as row_json '
+           || 'from ' || l_iot_schema || '.raw_data '
+           || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
+           || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
+           || 'order by time_received, id';
+  end build_raw_query;
+
+  function build_historized_query(
+    p_domain_short_name in varchar2,
+    p_window_start      in timestamp with time zone,
+    p_window_end        in timestamp with time zone
+  ) return clob
+  is
+    l_iot_schema varchar2(261);
+  begin
+    l_iot_schema := dbms_assert.simple_sql_name(
+      upper(trim(p_domain_short_name)) || '__IOT'
+    );
+
+    return 'select '
+           || 'id, digital_twin_instance_id, content_path, time_observed, '
+           || 'json_serialize(value returning varchar2(32767)) as value_json, '
+           || 'json_value(value, ''$'' returning number null on error) as value_number, '
+           || 'json_value(value, ''$'' returning varchar2(32767) null on error) as value_text '
+           || 'from ' || l_iot_schema || '.historized_data '
+           || 'where time_observed >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
+           || 'and time_observed < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
+           || 'order by time_observed, id';
+  end build_historized_query;
+
+  function build_rejected_query(
+    p_domain_short_name in varchar2,
+    p_window_start      in timestamp with time zone,
+    p_window_end        in timestamp with time zone
+  ) return clob
+  is
+    l_iot_schema varchar2(261);
+  begin
+    l_iot_schema := dbms_assert.simple_sql_name(
+      upper(trim(p_domain_short_name)) || '__IOT'
+    );
+
+    return 'select json_object('
+           || '''id'' value id, '
+           || '''digital_twin_instance_id'' value digital_twin_instance_id, '
+           || '''endpoint'' value endpoint, '
+           || '''time_received'' value json_scalar(to_char(time_received at time zone ''UTC'', ''YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'')), '
+           || '''reason_code'' value reason_code, '
+           || '''reason_message'' value reason_message, '
+           || '''content_base64'' value apex_web_service.blob2clobbase64(content), '
+           || '''content_encoding'' value ''base64'' '
+           || 'returning clob) as row_json '
+           || 'from ' || l_iot_schema || '.rejected_data '
+           || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
+           || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
+           || 'order by time_received, id';
+  end build_rejected_query;
+
+  procedure put_json_object(
+    p_credential_name in varchar2,
+    p_object_uri      in varchar2,
+    p_payload         in clob
+  )
+  is
+    l_payload_blob blob;
+  begin
+    l_payload_blob := clob_to_blob(p_payload);
+
+    dbms_cloud.put_object(
+      credential_name => p_credential_name,
+      object_uri      => p_object_uri,
+      contents        => l_payload_blob
+    );
+  end put_json_object;
+
+  procedure put_query_rows_as_jsonl(
+    p_query           in clob,
+    p_credential_name in varchar2,
+    p_object_uri      in varchar2
+  )
+  is
+    l_payload clob;
+    l_row_json clob;
+    l_sql varchar2(32767);
+    l_cursor sys_refcursor;
+  begin
+    dbms_lob.createtemporary(l_payload, true);
+    l_sql := dbms_lob.substr(p_query, 32767, 1);
+
+    open l_cursor for l_sql;
+    loop
+      fetch l_cursor into l_row_json;
+      exit when l_cursor%notfound;
+      dbms_lob.append(l_payload, l_row_json);
+      dbms_lob.append(l_payload, to_clob(chr(10)));
+    end loop;
+    close l_cursor;
+
+    put_json_object(
+      p_credential_name => p_credential_name,
+      p_object_uri      => p_object_uri,
+      p_payload         => l_payload
+    );
+  exception
+    when others then
+      if l_cursor%isopen then
+        close l_cursor;
+      end if;
+      raise;
+  end put_query_rows_as_jsonl;
+
   procedure plan(
     p_config_name  in varchar2 default 'default',
     p_dataset_list in varchar2 default 'raw,historized,rejected',
@@ -415,12 +679,250 @@ create or replace package body archive_domain_pkg as
     p_result       out clob
   )
   is
+    l_config clob;
+    l_datasets t_dataset_list;
+    l_plan_result clob;
+    l_plan_obj json_object_t;
+    l_plan_datasets_obj json_object_t;
+    l_plan_dataset_obj json_object_t;
+    l_checkpoint_before_element json_element_t;
+    l_run_at timestamp with time zone;
+    l_window_start timestamp with time zone;
+    l_window_end timestamp with time zone;
+    l_region varchar2(128);
+    l_domain_short_name varchar2(128);
+    l_namespace varchar2(256);
+    l_bucket_name varchar2(256);
+    l_prefix varchar2(1024);
+    l_manifest_prefix varchar2(1024);
+    l_checkpoint_object varchar2(1024);
+    l_credential_name varchar2(128);
+    l_checkpoint_before varchar2(128);
+    l_dataset varchar2(30);
+    l_run_id varchar2(64);
+    l_dataset_object_prefix varchar2(2048);
+    l_dataset_file_uri_list varchar2(4000);
+    l_dataset_query clob;
+    l_dataset_export_format varchar2(30);
+    l_dataset_export_mode varchar2(30);
+    l_dataset_status varchar2(32);
+    l_dataset_error_message varchar2(4000);
+    l_all_succeeded boolean := true;
+    l_selected_datasets json_array_t := json_array_t();
+    l_manifest_dataset_results json_array_t := json_array_t();
+    l_result_datasets_obj json_object_t := json_object_t();
+    l_manifest_dataset_obj json_object_t;
+    l_result_dataset_obj json_object_t;
+    l_manifest_obj json_object_t := json_object_t();
+    l_result_obj json_object_t := json_object_t();
+    l_manifest_object_name varchar2(2048);
+    l_manifest_uri varchar2(4000);
+    l_manifest_json clob;
+    l_checkpoint_uri varchar2(4000);
+    l_checkpoint_json clob;
   begin
-    p_result := build_stub_result(
-      p_action       => 'run',
+    l_config := load_config(p_config_name => p_config_name);
+    l_datasets := parse_datasets(p_dataset_list => p_dataset_list);
+
+    plan(
       p_config_name  => p_config_name,
-      p_dataset_list => p_dataset_list
+      p_dataset_list => p_dataset_list,
+      p_start_time   => p_start_time,
+      p_end_time     => p_end_time,
+      p_result       => l_plan_result
     );
+
+    l_plan_obj := json_object_t.parse(l_plan_result);
+    l_run_at := parse_timestamp(l_plan_obj.get_string('now'));
+    l_plan_datasets_obj := l_plan_obj.get_object('datasets');
+    l_checkpoint_before_element := l_plan_obj.get('checkpoint_before');
+    if l_checkpoint_before_element is not null and not l_checkpoint_before_element.is_null then
+      l_checkpoint_before := l_plan_obj.get_string('checkpoint_before');
+    end if;
+
+    select json_value(l_config, '$.domain_short_name' returning varchar2(128) error on error),
+           json_value(l_config, '$.namespace' returning varchar2(256) error on error),
+           json_value(l_config, '$.bucket_name' returning varchar2(256) error on error),
+           json_value(l_config, '$.prefix' returning varchar2(1024) error on error),
+           json_value(l_config, '$.manifest_prefix' returning varchar2(1024) error on error),
+           json_value(l_config, '$.checkpoint_object' returning varchar2(1024) error on error),
+           json_value(l_config, '$.dbms_cloud_credential_name' returning varchar2(128) error on error)
+      into l_domain_short_name, l_namespace, l_bucket_name, l_prefix, l_manifest_prefix,
+           l_checkpoint_object, l_credential_name
+      from dual;
+
+    l_region := resolve_region(l_config);
+    if l_region is null then
+      raise_application_error(-20020, 'missing region and CLOUD_REGION context');
+    end if;
+
+    l_run_id := build_run_id(l_run_at);
+    for l_index in 1 .. l_datasets.count loop
+      l_dataset := l_datasets(l_index);
+      l_selected_datasets.append(l_dataset);
+
+      l_plan_dataset_obj := l_plan_datasets_obj.get_object(l_dataset);
+      l_window_start := parse_timestamp(l_plan_dataset_obj.get_string('window_start'));
+      l_window_end := parse_timestamp(l_plan_dataset_obj.get_string('window_end'));
+
+      l_dataset_object_prefix := build_dataset_object_prefix(
+        p_prefix            => l_prefix,
+        p_domain_short_name => l_domain_short_name,
+        p_dataset           => l_dataset,
+        p_run_id            => l_run_id,
+        p_run_at            => l_run_at
+      );
+
+      case l_dataset
+        when 'raw' then
+          l_dataset_query := build_raw_query(
+            p_domain_short_name => l_domain_short_name,
+            p_window_start      => l_window_start,
+            p_window_end        => l_window_end
+          );
+          l_dataset_export_format := 'jsonl';
+          l_dataset_export_mode := 'manual_jsonl';
+          l_dataset_file_uri_list := build_object_uri(
+            p_region      => l_region,
+            p_namespace   => l_namespace,
+            p_bucket_name => l_bucket_name,
+            p_object_name => l_dataset_object_prefix || '/part-00000.jsonl'
+          );
+        when 'historized' then
+          l_dataset_query := build_historized_query(
+            p_domain_short_name => l_domain_short_name,
+            p_window_start      => l_window_start,
+            p_window_end        => l_window_end
+          );
+          l_dataset_export_format := 'parquet';
+          l_dataset_export_mode := 'bulk';
+          l_dataset_file_uri_list := build_object_uri(
+            p_region      => l_region,
+            p_namespace   => l_namespace,
+            p_bucket_name => l_bucket_name,
+            p_object_name => l_dataset_object_prefix || '/' || l_dataset
+          );
+        when 'rejected' then
+          l_dataset_query := build_rejected_query(
+            p_domain_short_name => l_domain_short_name,
+            p_window_start      => l_window_start,
+            p_window_end        => l_window_end
+          );
+          l_dataset_export_format := 'jsonl';
+          l_dataset_export_mode := 'manual_jsonl';
+          l_dataset_file_uri_list := build_object_uri(
+            p_region      => l_region,
+            p_namespace   => l_namespace,
+            p_bucket_name => l_bucket_name,
+            p_object_name => l_dataset_object_prefix || '/part-00000.jsonl'
+          );
+      end case;
+
+      l_dataset_status := 'planned';
+      l_dataset_error_message := null;
+
+      begin
+        if l_dataset_export_mode = 'bulk' then
+          dbms_cloud.export_data(
+            credential_name => l_credential_name,
+            file_uri_list   => l_dataset_file_uri_list,
+            format          => '{"type":"' || l_dataset_export_format || '"}',
+            query           => l_dataset_query
+          );
+        else
+          put_query_rows_as_jsonl(
+            p_query           => l_dataset_query,
+            p_credential_name => l_credential_name,
+            p_object_uri      => l_dataset_file_uri_list
+          );
+        end if;
+        l_dataset_status := 'succeeded';
+      exception
+        when others then
+          l_dataset_status := 'failed';
+          l_dataset_error_message := substr(sqlerrm, 1, 4000);
+      end;
+
+      if l_dataset_status <> 'succeeded' then
+        l_all_succeeded := false;
+      end if;
+
+      l_manifest_dataset_obj := json_object_t();
+      l_manifest_dataset_obj.put('name', l_dataset);
+      l_manifest_dataset_obj.put('status', l_dataset_status);
+      l_manifest_dataset_obj.put('export_mode', l_dataset_export_mode);
+      l_manifest_dataset_obj.put('export_format', l_dataset_export_format);
+      l_manifest_dataset_obj.put('object_prefix', l_dataset_object_prefix);
+      if l_dataset_error_message is null then
+        l_manifest_dataset_obj.put_null('error_message');
+      else
+        l_manifest_dataset_obj.put('error_message', l_dataset_error_message);
+      end if;
+      l_manifest_dataset_results.append(l_manifest_dataset_obj);
+
+      l_result_dataset_obj := json_object_t();
+      l_result_dataset_obj.put('status', l_dataset_status);
+      l_result_dataset_obj.put('object_prefix', l_dataset_object_prefix);
+      l_result_dataset_obj.put('file_uri_list', l_dataset_file_uri_list);
+      if l_dataset_error_message is null then
+        l_result_dataset_obj.put_null('error_message');
+      else
+        l_result_dataset_obj.put('error_message', l_dataset_error_message);
+      end if;
+      l_result_datasets_obj.put(l_dataset, l_result_dataset_obj);
+    end loop;
+
+    l_manifest_object_name := build_manifest_object_name(
+      p_manifest_prefix => l_manifest_prefix,
+      p_run_id          => l_run_id
+    );
+    l_manifest_uri := build_object_uri(
+      p_region      => l_region,
+      p_namespace   => l_namespace,
+      p_bucket_name => l_bucket_name,
+      p_object_name => l_manifest_object_name
+    );
+
+    l_manifest_obj.put('run_id', l_run_id);
+    l_manifest_obj.put('selected_datasets', l_selected_datasets);
+    if l_checkpoint_before is null then
+      l_manifest_obj.put_null('checkpoint_before');
+    else
+      l_manifest_obj.put('checkpoint_before', l_checkpoint_before);
+    end if;
+    l_manifest_obj.put('dataset_results', l_manifest_dataset_results);
+    l_manifest_json := l_manifest_obj.to_clob();
+
+    put_json_object(
+      p_credential_name => l_credential_name,
+      p_object_uri      => l_manifest_uri,
+      p_payload         => l_manifest_json
+    );
+
+    if l_all_succeeded then
+      l_checkpoint_uri := build_object_uri(
+        p_region      => l_region,
+        p_namespace   => l_namespace,
+        p_bucket_name => l_bucket_name,
+        p_object_name => l_checkpoint_object
+      );
+
+      l_result_dataset_obj := json_object_t();
+      l_result_dataset_obj.put('last_successful_run_at', format_timestamp(l_run_at));
+      l_checkpoint_json := l_result_dataset_obj.to_clob();
+
+      put_json_object(
+        p_credential_name => l_credential_name,
+        p_object_uri      => l_checkpoint_uri,
+        p_payload         => l_checkpoint_json
+      );
+    end if;
+
+    l_result_obj.put('run_id', l_run_id);
+    l_result_obj.put('datasets', l_result_datasets_obj);
+    l_result_obj.put('manifest_object_name', l_manifest_object_name);
+    l_result_obj.put('checkpoint_advanced', l_all_succeeded);
+    p_result := l_result_obj.to_clob();
   end run;
 end archive_domain_pkg;
 /

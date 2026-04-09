@@ -79,6 +79,8 @@ as well as the messages received.
   Platform database queue messages, create short-lived Object Storage upload
   URLs, send responses through raw commands, and run optional post-processing.
 
+The SQL archive sample exposes `archive_domain_pkg.plan` and `archive_domain_pkg.run`, stores runtime settings in `archive_domain_config`, and uses `DBMS_CLOUD` APIs from the workspace schema.
+
 ## Documentation
 
 You can find the online documentation for the Oracle Internet of Things Platform at

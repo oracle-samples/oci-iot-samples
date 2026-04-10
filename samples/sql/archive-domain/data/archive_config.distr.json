@@ -1,0 +1,17 @@
+{
+  "domain_id": "<IoT Domain OCID>",
+  "domain_short_name": "<Domain Short Name>",
+  "namespace": "<Object Storage Namespace>",
+  "bucket_name": "<Bucket Name>",
+  "prefix": "iot-archive-sql",
+  "manifest_prefix": "iot-archive-sql/_manifests",
+  "checkpoint_object": "iot-archive-sql/_state/checkpoint.json",
+  "dbms_cloud_credential_name": "<DBMS_CLOUD Credential Name>",
+  "bootstrap_lookback_days": 1,
+  "region": "us-phoenix-1",
+  "retention_days": {
+    "raw": 16,
+    "historized": 30,
+    "rejected": 16
+  }
+}

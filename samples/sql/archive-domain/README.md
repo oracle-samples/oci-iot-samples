@@ -5,15 +5,15 @@ This DB-driven sample lets you plan and run the archive-domain workflow entirely
 The current DB-driven format choices are:
 
 - `historized` exports as Parquet
-- `raw` exports as JSONL with `content_base64`
-- `rejected` exports as JSONL with `content_base64`
+- `raw` exports as Data Pump
+- `rejected` exports as Data Pump
 
-That is an intentional environment-specific choice. In this managed IoT database, `DBMS_CLOUD.EXPORT_DATA` for the bronze datasets still hit `DATA_PUMP_DIR` access errors, so the package now writes `raw` and `rejected` with a manual JSONL writer backed by `DBMS_CLOUD.PUT_OBJECT`. The source tables already carry the core row-level provenance such as identifiers, endpoint, reason codes, and receive timestamps, so the archive only adds the extra metadata needed for reversible payload export and run-level audit. The payload bytes are preserved reversibly as base64 instead of relying on lossy text casts.
+That is the current preferred choice. After `DATA_PUMP_DIR` access was enabled for the `__WKSP` execution path, a query-based `DBMS_CLOUD.EXPORT_DATA(... type='datapump' ...)` probe succeeded against `KBCB5B66BKIW6__IOT.RAW_DATA`. That means the DB-driven sample can keep the bronze datasets on a fidelity-preserving Data Pump export path instead of falling back to text encodings.
 
 Non-Data Pump bronze options considered:
 
 - JSONL with `content_base64` and `content_encoding = 'base64'`:
-  chosen, because it stays fully database-native and preserves the original bytes reversibly.
+  viable fallback if `DATA_PUMP_DIR` access is unavailable.
 - Separate payload-object archive plus metadata sidecar:
   viable, but more moving parts than this sample needs in v1.
 - Best-effort text casting of `BLOB` content:
@@ -72,7 +72,7 @@ Inspect `$.datasets.<name>.window_start` / `window_end` plus `checkpoint_before`
 
 ## Running With `archive_domain_pkg.run`
 
-`archive_domain_pkg.run` exports `historized` with `DBMS_CLOUD.EXPORT_DATA`, writes `raw` and `rejected` as JSONL with `content_base64`, writes a JSON manifest under `<prefix>/_manifests/run_id=<...>.json`, and advances the checkpoint at `<prefix>/_state/checkpoint.json` only after all exports succeed. Use the smoke scripts such as `samples/sql/archive-domain/smoke/run_raw_small_window.sql` (which also prints the manifest) or invoke the package directly:
+`archive_domain_pkg.run` exports `historized` as Parquet and `raw` / `rejected` as Data Pump through `DBMS_CLOUD.EXPORT_DATA`, writes a JSON manifest under `<prefix>/_manifests/run_id=<...>.json`, and advances the checkpoint at `<prefix>/_state/checkpoint.json` only after all exports succeed. Use the smoke scripts such as `samples/sql/archive-domain/smoke/run_raw_small_window.sql` (which also prints the manifest) or invoke the package directly:
 
 ```sql
 set serveroutput on size unlimited
@@ -91,13 +91,7 @@ end;
 
 The returned JSON includes per-dataset statuses and the manifest path. Re-run with a different `p_dataset_list` or `p_end_time` to export additional windows.
 
-For bronze datasets, the exported JSONL rows keep the row-level metadata already present in `raw_data` and `rejected_data`, plus the archive-specific fields needed for reversible export:
-
-- the usual metadata columns such as identifiers, endpoint, and timestamps
-- `content_base64` for the original `BLOB` payload
-- `content_encoding = 'base64'`
-
-This preserves reversibility for raw or mixed-format payloads while keeping the export database-native.
+For bronze datasets, the archive now preserves the database rows through Data Pump rather than rewriting the `BLOB` payloads into text.
 
 ## Manual Validation & Object Storage Verification
 
@@ -107,7 +101,7 @@ This preserves reversibility for raw or mixed-format payloads while keeping the 
    - A manifest JSON appears under `_manifests/run_id=<run-id>.json`.
    - The checkpoint JSON at `_state/checkpoint.json` reflects the new `last_successful_run_at`.
    - Dataset exports land under `zone=bronze` / `zone=silver` paths with `dataset=<name>` segments.
-   - `raw` and `rejected` exports contain `content_base64` plus `content_encoding = 'base64'` in JSONL rows.
+   - `raw` and `rejected` exports are written as `.dmp` objects.
    - `historized` exports continue to use Parquet.
 4. Re-run `archive_domain_pkg.plan` to ensure the next window uses the updated checkpoint.
 

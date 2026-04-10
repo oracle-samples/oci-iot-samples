@@ -473,14 +473,7 @@ create or replace package body archive_domain_pkg as
       upper(trim(p_domain_short_name)) || '__IOT'
     );
 
-    return 'select json_object('
-           || '''id'' value id, '
-           || '''digital_twin_instance_id'' value digital_twin_instance_id, '
-           || '''endpoint'' value endpoint, '
-           || '''time_received'' value json_scalar(to_char(time_received at time zone ''UTC'', ''YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'')), '
-           || '''content_base64'' value apex_web_service.blob2clobbase64(content), '
-           || '''content_encoding'' value ''base64'' '
-           || 'returning clob) as row_json '
+    return 'select * '
            || 'from ' || l_iot_schema || '.raw_data '
            || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
            || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
@@ -522,16 +515,7 @@ create or replace package body archive_domain_pkg as
       upper(trim(p_domain_short_name)) || '__IOT'
     );
 
-    return 'select json_object('
-           || '''id'' value id, '
-           || '''digital_twin_instance_id'' value digital_twin_instance_id, '
-           || '''endpoint'' value endpoint, '
-           || '''time_received'' value json_scalar(to_char(time_received at time zone ''UTC'', ''YYYY-MM-DD"T"HH24:MI:SS.FF3"Z"'')), '
-           || '''reason_code'' value reason_code, '
-           || '''reason_message'' value reason_message, '
-           || '''content_base64'' value apex_web_service.blob2clobbase64(content), '
-           || '''content_encoding'' value ''base64'' '
-           || 'returning clob) as row_json '
+    return 'select * '
            || 'from ' || l_iot_schema || '.rejected_data '
            || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
            || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
@@ -554,42 +538,6 @@ create or replace package body archive_domain_pkg as
       contents        => l_payload_blob
     );
   end put_json_object;
-
-  procedure put_query_rows_as_jsonl(
-    p_query           in clob,
-    p_credential_name in varchar2,
-    p_object_uri      in varchar2
-  )
-  is
-    l_payload clob;
-    l_row_json clob;
-    l_sql varchar2(32767);
-    l_cursor sys_refcursor;
-  begin
-    dbms_lob.createtemporary(l_payload, true);
-    l_sql := dbms_lob.substr(p_query, 32767, 1);
-
-    open l_cursor for l_sql;
-    loop
-      fetch l_cursor into l_row_json;
-      exit when l_cursor%notfound;
-      dbms_lob.append(l_payload, l_row_json);
-      dbms_lob.append(l_payload, to_clob(chr(10)));
-    end loop;
-    close l_cursor;
-
-    put_json_object(
-      p_credential_name => p_credential_name,
-      p_object_uri      => p_object_uri,
-      p_payload         => l_payload
-    );
-  exception
-    when others then
-      if l_cursor%isopen then
-        close l_cursor;
-      end if;
-      raise;
-  end put_query_rows_as_jsonl;
 
   procedure plan(
     p_config_name  in varchar2 default 'default',
@@ -704,7 +652,6 @@ create or replace package body archive_domain_pkg as
     l_dataset_file_uri_list varchar2(4000);
     l_dataset_query clob;
     l_dataset_export_format varchar2(30);
-    l_dataset_export_mode varchar2(30);
     l_dataset_status varchar2(32);
     l_dataset_error_message varchar2(4000);
     l_all_succeeded boolean := true;
@@ -780,13 +727,12 @@ create or replace package body archive_domain_pkg as
             p_window_start      => l_window_start,
             p_window_end        => l_window_end
           );
-          l_dataset_export_format := 'jsonl';
-          l_dataset_export_mode := 'manual_jsonl';
+          l_dataset_export_format := 'datapump';
           l_dataset_file_uri_list := build_object_uri(
             p_region      => l_region,
             p_namespace   => l_namespace,
             p_bucket_name => l_bucket_name,
-            p_object_name => l_dataset_object_prefix || '/part-00000.jsonl'
+            p_object_name => l_dataset_object_prefix || '/raw_01.dmp'
           );
         when 'historized' then
           l_dataset_query := build_historized_query(
@@ -795,7 +741,6 @@ create or replace package body archive_domain_pkg as
             p_window_end        => l_window_end
           );
           l_dataset_export_format := 'parquet';
-          l_dataset_export_mode := 'bulk';
           l_dataset_file_uri_list := build_object_uri(
             p_region      => l_region,
             p_namespace   => l_namespace,
@@ -808,13 +753,12 @@ create or replace package body archive_domain_pkg as
             p_window_start      => l_window_start,
             p_window_end        => l_window_end
           );
-          l_dataset_export_format := 'jsonl';
-          l_dataset_export_mode := 'manual_jsonl';
+          l_dataset_export_format := 'datapump';
           l_dataset_file_uri_list := build_object_uri(
             p_region      => l_region,
             p_namespace   => l_namespace,
             p_bucket_name => l_bucket_name,
-            p_object_name => l_dataset_object_prefix || '/part-00000.jsonl'
+            p_object_name => l_dataset_object_prefix || '/rejected_01.dmp'
           );
       end case;
 
@@ -822,18 +766,23 @@ create or replace package body archive_domain_pkg as
       l_dataset_error_message := null;
 
       begin
-        if l_dataset_export_mode = 'bulk' then
+        if l_dataset_export_format = 'datapump' then
+          dbms_cloud.export_data(
+            credential_name => l_credential_name,
+            file_uri_list   => l_dataset_file_uri_list,
+            format          => json_object(
+                                 'type' value 'datapump',
+                                 'compression' value 'HIGH',
+                                 'version' value 'LATEST'
+                               ),
+            query           => l_dataset_query
+          );
+        else
           dbms_cloud.export_data(
             credential_name => l_credential_name,
             file_uri_list   => l_dataset_file_uri_list,
             format          => '{"type":"' || l_dataset_export_format || '"}',
             query           => l_dataset_query
-          );
-        else
-          put_query_rows_as_jsonl(
-            p_query           => l_dataset_query,
-            p_credential_name => l_credential_name,
-            p_object_uri      => l_dataset_file_uri_list
           );
         end if;
         l_dataset_status := 'succeeded';
@@ -850,7 +799,7 @@ create or replace package body archive_domain_pkg as
       l_manifest_dataset_obj := json_object_t();
       l_manifest_dataset_obj.put('name', l_dataset);
       l_manifest_dataset_obj.put('status', l_dataset_status);
-      l_manifest_dataset_obj.put('export_mode', l_dataset_export_mode);
+      l_manifest_dataset_obj.put('export_mode', 'bulk');
       l_manifest_dataset_obj.put('export_format', l_dataset_export_format);
       l_manifest_dataset_obj.put('object_prefix', l_dataset_object_prefix);
       if l_dataset_error_message is null then

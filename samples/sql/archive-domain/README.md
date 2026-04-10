@@ -8,6 +8,8 @@ The DB-driven format choices are:
 - `raw` exports as Data Pump
 - `rejected` exports as Data Pump
 
+The `bronze` / `silver` zone names follow the common medallion architecture pattern: bronze for raw ingested data and silver for validated or refined data. This sample uses bronze and silver only. See [What is the medallion lakehouse architecture?](https://learn.microsoft.com/en-us/azure/databricks/lakehouse/medallion).
+
 ## Prerequisites
 
 - An IoT Domain (for example `ocid1.iotdomain.oc1..example`) and the `__IOT` schema populated with telemetry tables.
@@ -27,7 +29,7 @@ For the SQL sample itself, the important path is the `DBMS_CLOUD` credential. Th
 - read bucket metadata for the target bucket
 - create objects in the target bucket
 - overwrite objects in the target bucket when rerunning the same checkpoint or manifest object names
-- read objects again if you want the smoke scripts to validate manifests and checkpoint files
+- read objects again if you want to validate manifests and checkpoint files after a run
 
 In same-tenancy setups, the broad pattern is:
 
@@ -107,12 +109,11 @@ python3 samples/sql/archive-domain/load_config.py \
 
 The distributed JSON template includes placeholders for the bucket layout and
 `dbms_cloud_credential_name`, and is the recommended starting point for
-operator-managed configuration. `smoke/seed_config.sql` remains available as a
-test helper, but it is not the primary setup path.
+operator-managed configuration.
 
 ## Planning With `archive_domain_pkg.plan`
 
-The plan procedure inspects the retention policy, checkpoint state, and (optionally) explicit `start`/`end` times before returning a JSON payload of proposed windows for each dataset. Call it manually or via `samples/sql/archive-domain/smoke/plan.sql`:
+Start with `archive_domain_pkg.plan`. It inspects the retention policy, checkpoint state, and optional `start` / `end` overrides before returning a JSON payload of proposed windows for each dataset:
 
 ```sql
 set serveroutput on size unlimited
@@ -157,7 +158,7 @@ Inspect `$.datasets.<name>.window_start` / `window_end` plus `checkpoint_before`
 
 ## Running With `archive_domain_pkg.run`
 
-`archive_domain_pkg.run` exports `historized` as Parquet and `raw` / `rejected` as Data Pump through `DBMS_CLOUD.EXPORT_DATA`, writes a JSON manifest under `<prefix>/_manifests/run_id=<...>.json`, and advances the checkpoint at `<prefix>/_state/checkpoint.json` only after all exports succeed. Use the smoke scripts such as `samples/sql/archive-domain/smoke/run_raw_small_window.sql` (which also prints the manifest) or invoke the package directly:
+`archive_domain_pkg.run` exports `historized` as Parquet and `raw` / `rejected` as Data Pump through `DBMS_CLOUD.EXPORT_DATA`, writes a JSON manifest under `<prefix>/_manifests/run_id=<...>.json`, and advances the checkpoint at `<prefix>/_state/checkpoint.json` only after all exports succeed:
 
 ```sql
 set serveroutput on size unlimited
@@ -194,7 +195,7 @@ For bronze datasets, the archive now preserves the database rows through Data Pu
 ## Manual Validation & Object Storage Verification
 
 1. Confirm the config row exists: `select config_json from archive_domain_config where config_name = 'default';`
-2. Run the plan script and check that `checkpoint_before` equals the last checkpoint in Object Storage.
+2. Run `archive_domain_pkg.plan` and check that `checkpoint_before` equals the last checkpoint in Object Storage.
 3. After running `archive_domain_pkg.run`, list objects under `oci os object list --namespace <namespace> --bucket <bucket> --prefix <prefix>` and verify:
    - A manifest JSON appears under `_manifests/run_id=<run-id>.json`.
    - The checkpoint JSON at `_state/checkpoint.json` reflects the new `last_successful_run_at`.
@@ -202,12 +203,3 @@ For bronze datasets, the archive now preserves the database rows through Data Pu
    - `raw` and `rejected` exports are written as `.dmp` objects.
    - `historized` exports use Parquet.
 4. Re-run `archive_domain_pkg.plan` to ensure the next window uses the updated checkpoint.
-
-## Smoke Scripts
-
-- `smoke/seed_config.sql`: populates `archive_domain_config` with a `default` row that uses `DOMAIN_ARCHIVE_TEST`.
-- `load_config.py`: loads `data/archive_config.json` into `archive_domain_config`.
-- `smoke/plan.sql`: exercises `archive_domain_pkg.plan`.
-- `smoke/run_raw_small_window.sql`, `run_historized_small_window.sql`, `run_rejected_small_window.sql`: export the three datasets individually using the configuration metadata.
-
-Each smoke script expects the supporting objects to exist and prints JSON output so you can verify returned manifests without wiring a scheduler.

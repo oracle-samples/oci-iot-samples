@@ -1,20 +1,20 @@
 # Archive IoT Domain Data To Object Storage
 
 Sample Python application to plan and run whole-domain archival for OCI IoT
-telemetry that is approaching retention-based purge windows.
+Domain data.
 
-The sample is intentionally separate from `manage-dt` because it focuses on:
-
-- domain-wide archival rather than single Digital Twins
-- direct database access rather than ORDS
-- Object Storage manifests and checkpoints
+For shared archive-domain background, including the plan/run workflow,
+datasets, retention-based archive windows, Object Storage layout, and bucket
+access guidance, see [Shared Concepts](../../sql/archive-domain/README.md#shared-concepts)
+in the SQL sample README. This README focuses on Python-specific install,
+configuration, and execution details.
 
 The CLI currently exposes two commands:
 
 - `archive-domain plan`
 - `archive-domain run`
 
-The implementation supports three datasets:
+The Python implementation supports the same three datasets:
 
 - `raw`
 - `historized`
@@ -23,7 +23,8 @@ The implementation supports three datasets:
 The sample supports two execution modes:
 
 - `bulk`: database-side export using `DBMS_CLOUD.EXPORT_DATA`
-- `sql`: SQL-based fallback when bulk export is unavailable
+- `sql`: SQL-based fallback when bulk export is unavailable, writing `jsonl.gz`
+  objects to Object Storage
 
 ## Install
 
@@ -46,4 +47,3 @@ archive-domain --help
 archive-domain plan --datasets raw,historized,rejected
 archive-domain run --datasets raw,historized --dry-run
 ```
-

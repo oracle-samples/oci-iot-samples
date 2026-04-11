@@ -2,36 +2,70 @@
 
 This DB-driven sample lets you plan and run the archive-domain workflow entirely from the database using `archive_domain_pkg.plan` and `archive_domain_pkg.run`. The package lives in the `<DomainShortId>__WKSP` schema, reads configuration from `archive_domain_config`, and writes datasets to Object Storage with `DBMS_CLOUD` APIs.
 
-The DB-driven format choices are:
+## Shared Concepts
 
-- `historized` exports as Parquet
-- `raw` exports as Data Pump
-- `rejected` exports as Data Pump
+This section applies to both the SQL sample in this directory and the Python
+sample in [../../python/archive-domain/README.md](../../python/archive-domain/README.md).
 
-The `bronze` / `silver` zone names follow the common medallion architecture pattern: bronze for raw ingested data and silver for validated or refined data. This sample uses bronze and silver only. See [What is the medallion lakehouse architecture?](https://learn.microsoft.com/en-us/azure/databricks/lakehouse/medallion).
+### Plan And Run
 
-## Prerequisites
+Both implementations follow the same archive workflow:
 
-- An IoT Domain (for example `ocid1.iotdomain.oc1..example`) and the `__IOT` schema populated with telemetry tables.
-- A workspace database user configured to connect with `WKSP_PROXY_USER` (see [samples/script/query-db/README.md](../../script/query-db/README.md) for the connection flow used here).
-- A `DBMS_CLOUD` credential that can write to the archive bucket. The sample uses the placeholder name `DOMAIN_ARCHIVE_TEST` (the same name referenced from the sample config). Create it with `DBMS_CLOUD.CREATE_CREDENTIAL` before calling the package routines.
-- Object Storage namespace/bucket for checkpoints and manifests. The config row seeds `prefix` values such as `<bucket>/<prefix>` and `_state/checkpoint.json`.
+- `plan` computes the archive windows for the selected datasets.
+- `run` exports the selected datasets to Object Storage, writes a manifest, and
+  advances the checkpoint only when every selected dataset succeeds.
 
-## Bucket Access Guidance
+### Datasets, Retention, And Archive Windows
 
-There are two separate OCI access paths to keep in mind:
+Both implementations operate on the same datasets:
 
-- The OCI principal behind the `DBMS_CLOUD` credential.
-- The compute or operator principal you might use for manual validation outside the database.
+- `raw`
+- `historized`
+- `rejected`
 
-For the SQL sample itself, the important path is the `DBMS_CLOUD` credential. The OCI user or group behind that credential must be able to:
+The IoT Platform purges data according to dataset-specific retention periods.
+Both implementations use those retention values to compute the purge boundary
+for each dataset (`now - retention_days`) and then derive the newly at-risk
+archive window from:
+
+- explicit `start` / `end` overrides when provided
+- the last successful checkpoint in Object Storage
+- the configured bootstrap lookback when no checkpoint exists yet
+
+### Object Storage Layout And State
+
+The archive output uses `bronze` / `silver` zone names following the common
+medallion architecture pattern: bronze for raw ingested data and silver for
+historized data. This sample uses bronze and silver only. See [What is the
+medallion lakehouse architecture?](https://learn.microsoft.com/en-us/azure/databricks/lakehouse/medallion).
+
+Both implementations write:
+
+- dataset exports under `domain=<...>/zone=<...>/dataset=<...>/...`
+- a manifest object under `<prefix>/_manifests/run_id=<...>.json`
+- a checkpoint object under `<prefix>/_state/checkpoint.json`
+
+The checkpoint advances only after all selected datasets succeed.
+
+### Bucket Access Guidance
+
+Both implementations need an OCI principal that can write to the target Object
+Storage bucket. The exact principal differs by implementation:
+
+- SQL uses the OCI principal behind the `DBMS_CLOUD` credential.
+- Python uses the compute or operator principal that runs the sample, and bulk
+  mode also needs a `DBMS_CLOUD` credential for database-side export.
+
+Whichever principal is writing to the bucket must be able to:
 
 - read bucket metadata for the target bucket
 - create objects in the target bucket
-- overwrite objects in the target bucket when rerunning the same checkpoint or manifest object names
-- read objects again if you want to validate manifests and checkpoint files after a run
+- overwrite objects in the target bucket when rerunning the same checkpoint or
+  manifest object names
+- read objects again if you want to validate manifests and checkpoint files
+  after a run
 
-In same-tenancy setups, the broad pattern is:
+In same-tenancy setups, the broad policy pattern is:
 
 ```text
 Allow <group-or-user-scope> to read buckets in compartment <bucket_compartment>
@@ -41,9 +75,24 @@ Allow <group-or-user-scope> to manage objects in compartment <bucket_compartment
   where target.bucket.name = '<bucket_name>'
 ```
 
-If the credential user is in a different tenancy from the bucket, you need the usual OCI cross-tenancy `Define` / `Endorse` / `Admit` policy pattern instead of same-tenancy bucket policies.
+If the writer principal is in a different tenancy from the bucket, use the
+usual OCI cross-tenancy `Define` / `Endorse` / `Admit` policy pattern instead
+of same-tenancy bucket policies.
 
-If you also use the compute-host or Python workflows, the compute instance principal or dynamic group needs its own Object Storage policy. That access path is separate from the `DBMS_CLOUD` credential user.
+## SQL-Specific Notes
+
+The DB-driven format choices are:
+
+- `historized` exports as Parquet
+- `raw` exports as Data Pump
+- `rejected` exports as Data Pump
+
+## Prerequisites
+
+- An IoT Domain (for example `ocid1.iotdomain.oc1..example`) and the `__IOT` schema populated with telemetry tables.
+- A workspace database user configured to connect with `WKSP_PROXY_USER` (see [samples/script/query-db/README.md](../../script/query-db/README.md) for the connection flow used here).
+- A `DBMS_CLOUD` credential that can write to the archive bucket. The sample uses the placeholder name `DOMAIN_ARCHIVE_TEST` (the same name referenced from the sample config). Create it with `DBMS_CLOUD.CREATE_CREDENTIAL` before calling the package routines.
+- Object Storage namespace/bucket for checkpoints and manifests. The config row seeds `prefix` values such as `<bucket>/<prefix>` and `_state/checkpoint.json`.
 
 For the bronze Data Pump exports (`raw` and `rejected`), this managed database also needed database-side access to `DATA_PUMP_DIR`. In practice that means the execution schema needs the necessary directory privileges before query-based `DBMS_CLOUD.EXPORT_DATA(... type='datapump' ...)` will work.
 
@@ -129,16 +178,6 @@ begin
 end;
 /
 ```
-
-The IoT Platform purges data according to dataset-specific retention periods.
-For this SQL sample, those retention values are supplied in
-`archive_domain_config.config_json` under `retention_days`. The code uses them
-to compute the purge boundary for each dataset (`now - retention_days`) and
-then derives the newly at-risk archive window from either:
-
-- the explicit `p_start_time` / `p_end_time`
-- the last successful checkpoint in Object Storage
-- or the configured bootstrap lookback when no checkpoint exists yet
 
 `archive_domain_pkg.plan` triggers these steps:
 

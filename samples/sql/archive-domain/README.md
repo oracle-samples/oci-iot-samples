@@ -79,6 +79,19 @@ If the writer principal is in a different tenancy from the bucket, use the
 usual OCI cross-tenancy `Define` / `Endorse` / `Admit` policy pattern instead
 of same-tenancy bucket policies.
 
+### Current Blockers
+
+Using Data Pump in the IoT Platform database is waiting on the dev team to
+investigate the following grant:
+
+```sql
+GRANT READ, WRITE ON DIRECTORY DATA_PUMP_DIR TO <domainShortId>__WKSP;
+```
+
+This affects the SQL sample and the Python sample's bulk mode when they rely on
+database-side Data Pump export for bronze datasets. The investigation is
+tracked in [IOTNG-6379](https://jira.oci.oraclecorp.com/browse/IOTNG-6379).
+
 ## SQL-Specific Notes
 
 The DB-driven format choices are:

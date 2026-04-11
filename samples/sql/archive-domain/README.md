@@ -102,12 +102,10 @@ The DB-driven format choices are:
 
 ## Prerequisites
 
-- An IoT Domain (for example `ocid1.iotdomain.oc1..example`) and the `__IOT` schema populated with telemetry tables.
+- An IoT Domain (for example `ocid1.iotdomain.oc1..example`).
 - A workspace database user configured to connect with `WKSP_PROXY_USER` (see [samples/script/query-db/README.md](../../script/query-db/README.md) for the connection flow used here).
 - A `DBMS_CLOUD` credential that can write to the archive bucket. The sample uses the placeholder name `DOMAIN_ARCHIVE_TEST` (the same name referenced from the sample config). Create it with `DBMS_CLOUD.CREATE_CREDENTIAL` before calling the package routines.
 - Object Storage namespace/bucket for checkpoints and manifests. The config row seeds `prefix` values such as `<bucket>/<prefix>` and `_state/checkpoint.json`.
-
-For the bronze Data Pump exports (`raw` and `rejected`), this managed database also needed database-side access to `DATA_PUMP_DIR`. In practice that means the execution schema needs the necessary directory privileges before query-based `DBMS_CLOUD.EXPORT_DATA(... type='datapump' ...)` will work.
 
 ## Install / Teardown
 

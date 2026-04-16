@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
+
 from archive_domain.config import (
     ArchiveConfig,
     DatabaseConfig,
@@ -14,7 +16,7 @@ from archive_domain.service import ArchiveService
 
 class _StaticRetentionLookup:
     def get_retention_days(self):
-        return {"raw": 16}
+        return {"raw": 16, "historized": 30, "rejected": 16}
 
 
 class _MemoryStateStore:
@@ -37,11 +39,11 @@ class _FailingExecutor:
         raise RuntimeError("simulated export failure")
 
 
-def _build_config():
+def _build_config(export_format: str = "parquet"):
     return ArchiveConfig(
         iot=IotConfig(
             domain_id="ocid1.iotdomain.oc1..exampleuniqueID",
-            retention_days={"raw": 16},
+            retention_days={"raw": 16, "historized": 30, "rejected": 16},
             bootstrap_lookback_days=1,
         ),
         database=DatabaseConfig(
@@ -61,7 +63,14 @@ def _build_config():
             manifest_prefix="_manifests",
             checkpoint_object="_state/checkpoint.json",
         ),
-        export_format="parquet",
+        export_format=export_format,
+    )
+
+
+def _build_plan_service(config):
+    return ArchiveService(
+        config=config,
+        retention_lookup=_StaticRetentionLookup(),
     )
 
 
@@ -125,3 +134,37 @@ def test_distributed_config_template_defaults_to_parquet():
     ).read_text(encoding="utf-8")
 
     assert "export_format: parquet" in template
+
+
+def test_run_rejects_datapump_when_feature_flag_disabled(monkeypatch):
+    monkeypatch.delenv("ARCHIVE_DOMAIN_DATAPUMP_ENABLED", raising=False)
+    service = _build_plan_service(_build_config(export_format="datapump"))
+
+    with pytest.raises(
+        ValueError, match="datapump export format is not enabled"
+    ):
+        service.run(datasets="raw", dry_run=True)
+
+
+def test_plan_rejects_multiple_datasets_for_datapump(monkeypatch):
+    monkeypatch.setenv("ARCHIVE_DOMAIN_DATAPUMP_ENABLED", "true")
+    service = _build_plan_service(_build_config(export_format="datapump"))
+
+    with pytest.raises(
+        ValueError, match="datapump export format requires selecting exactly one dataset"
+    ):
+        service.plan(datasets="raw,historized")
+
+
+def test_plan_allows_multiple_datasets_for_parquet(monkeypatch):
+    monkeypatch.delenv("ARCHIVE_DOMAIN_DATAPUMP_ENABLED", raising=False)
+    service = ArchiveService(
+        config=_build_config(export_format="parquet"),
+        retention_lookup=_StaticRetentionLookup(),
+        clock=lambda: datetime(2026, 4, 8, 12, 0, tzinfo=timezone.utc),
+    )
+
+    result = service.plan(datasets="raw,historized")
+
+    assert result.export_format == "parquet"
+    assert result.plan.selected_datasets == ("raw", "historized")

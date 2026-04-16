@@ -47,6 +47,7 @@ end;
 create or replace package body archive_domain_pkg as
   type t_dataset_list is table of varchar2(30) index by pls_integer;
   type t_seen_map is table of pls_integer index by varchar2(30);
+  c_enable_datapump constant boolean := false;
 
   function format_timestamp(
     p_value in timestamp with time zone
@@ -372,6 +373,47 @@ create or replace package body archive_domain_pkg as
     return l_region;
   end resolve_region;
 
+  function resolve_export_format(
+    p_config in clob
+  ) return varchar2
+  is
+    l_export_format varchar2(30);
+  begin
+    select lower(
+             coalesce(
+               json_value(p_config, '$.export_format' returning varchar2(30) null on error),
+               'parquet'
+             )
+           )
+      into l_export_format
+      from dual;
+
+    if l_export_format not in ('parquet', 'datapump') then
+      raise_application_error(-20024, 'unsupported export_format: ' || l_export_format);
+    end if;
+
+    return l_export_format;
+  end resolve_export_format;
+
+  procedure validate_export_request(
+    p_export_format in varchar2,
+    p_datasets      in t_dataset_list
+  )
+  is
+  begin
+    if p_export_format != 'datapump' then
+      return;
+    end if;
+
+    if not c_enable_datapump then
+      raise_application_error(-20025, 'datapump export format is not enabled for this platform');
+    end if;
+
+    if p_datasets.count != 1 then
+      raise_application_error(-20026, 'datapump export format requires exactly one dataset per run');
+    end if;
+  end validate_export_request;
+
   function trim_slashes(
     p_value in varchar2
   ) return varchar2
@@ -556,6 +598,7 @@ create or replace package body archive_domain_pkg as
     l_datasets_obj json_object_t := json_object_t();
     l_dataset_obj json_object_t;
     l_dataset varchar2(30);
+    l_export_format varchar2(30);
     l_retention_days pls_integer;
     l_purge_boundary timestamp with time zone;
     l_window_start timestamp with time zone;
@@ -563,6 +606,11 @@ create or replace package body archive_domain_pkg as
   begin
     l_config := load_config(p_config_name => p_config_name);
     l_datasets := parse_datasets(p_dataset_list => p_dataset_list);
+    l_export_format := resolve_export_format(p_config => l_config);
+    validate_export_request(
+      p_export_format => l_export_format,
+      p_datasets      => l_datasets
+    );
     l_checkpoint_before := load_checkpoint(p_config => l_config);
 
     begin
@@ -584,6 +632,7 @@ create or replace package body archive_domain_pkg as
     end if;
 
     l_result_obj.put('now', format_timestamp(l_now));
+    l_result_obj.put('export_format', l_export_format);
     if l_checkpoint_before is null then
       l_result_obj.put_null('checkpoint_before');
     else

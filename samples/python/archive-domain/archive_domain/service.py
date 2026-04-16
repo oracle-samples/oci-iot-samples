@@ -3,14 +3,22 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import os
 from typing import Any
 
 from .config import load_config
 from .executor import LiveArchiveExecutor
-from .exporters import dataset_zone, export_format_for_dataset
+from .exporters import dataset_zone
 from .iot_domain import IotDomainLookup, resolve_retention_days
 from .manifest import build_run_manifest
-from .models import CheckpointState, DatasetResult, PlanResult, RunResult
+from .models import (
+    CheckpointState,
+    DatasetResult,
+    EXPORT_FORMAT_DATAPUMP,
+    VALID_EXPORT_FORMATS,
+    PlanResult,
+    RunResult,
+)
 from .object_storage import (
     ObjectStorageStateStore,
     build_dataset_object_prefix,
@@ -24,6 +32,16 @@ from .oci_utils import (
     resolve_region,
 )
 from .planner import build_archive_plan, parse_datasets
+
+_DATAPUMP_FEATURE_FLAG = "ARCHIVE_DOMAIN_DATAPUMP_ENABLED"
+
+
+def _is_datapump_enabled() -> bool:
+    return os.environ.get(_DATAPUMP_FEATURE_FLAG, "false").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
 
 
 class NullRetentionLookup:
@@ -59,6 +77,22 @@ class ArchiveService:
             self.config.object_storage.checkpoint_object
         )
 
+    def _validate_export_format(self, selected_datasets: tuple[str, ...]) -> None:
+        export_format = (self.config.export_format or "parquet").lower()
+
+        if export_format not in VALID_EXPORT_FORMATS:
+            raise ValueError(f"unsupported export_format: {export_format}")
+
+        if export_format == EXPORT_FORMAT_DATAPUMP:
+            if not _is_datapump_enabled():
+                raise ValueError("datapump export format is not enabled in this environment")
+
+            if len(selected_datasets) != 1:
+                raise ValueError("datapump export format requires selecting exactly one dataset")
+
+    def _resolved_export_format(self) -> str:
+        return (self.config.export_format or "parquet").lower()
+
     def plan(
         self,
         datasets: str | None = None,
@@ -67,6 +101,8 @@ class ArchiveService:
     ) -> PlanResult:
         """Compute the archive plan for the selected datasets."""
         selected_datasets = parse_datasets(datasets)
+        self._validate_export_format(selected_datasets)
+        export_format = self._resolved_export_format()
         checkpoint = self._load_checkpoint()
         retention_days = resolve_retention_days(
             lookup_client=self.retention_lookup,
@@ -84,6 +120,7 @@ class ArchiveService:
         )
         return PlanResult(
             plan=plan,
+            export_format=export_format,
             retention_days=retention_days,
             checkpoint=checkpoint,
         )
@@ -120,7 +157,7 @@ class ArchiveService:
                         name=dataset,
                         status="planned",
                         export_mode=mode,
-                        export_format=export_format_for_dataset(dataset),
+                        export_format=plan_result.export_format,
                         object_prefix=object_prefix,
                     )
                 )
@@ -146,7 +183,7 @@ class ArchiveService:
                         name=dataset,
                         status="failed",
                         export_mode=mode,
-                        export_format=export_format_for_dataset(dataset),
+                        export_format=plan_result.export_format,
                         object_prefix=object_prefix,
                         error_message=str(exc),
                     )
@@ -184,6 +221,7 @@ class ArchiveService:
         return RunResult(
             run_id=run_id,
             mode=mode,
+            export_format=plan_result.export_format,
             plan_result=plan_result,
             dataset_results=tuple(dataset_results),
             checkpoint_advanced=checkpoint_advanced,

@@ -7,6 +7,10 @@ from datetime import datetime
 
 VALID_DATASETS = ("raw", "historized", "rejected")
 
+EXPORT_FORMAT_PARQUET = "parquet"
+EXPORT_FORMAT_DATAPUMP = "datapump"
+VALID_EXPORT_FORMATS = (EXPORT_FORMAT_PARQUET, EXPORT_FORMAT_DATAPUMP)
+
 
 @dataclass(frozen=True)
 class DatasetPlan:
@@ -53,6 +57,7 @@ class PlanResult:
     """Planned archive work plus supporting context."""
 
     plan: ArchivePlan
+    export_format: str
     retention_days: dict[str, int]
     checkpoint: CheckpointState
 
@@ -63,6 +68,7 @@ class RunResult:
 
     run_id: str
     mode: str
+    export_format: str
     plan_result: PlanResult
     dataset_results: tuple[DatasetResult, ...]
     checkpoint_advanced: bool

@@ -38,6 +38,7 @@ class _FakeService:
                 selected_datasets=("raw", "historized"),
                 datasets=datasets,
             ),
+            export_format="parquet",
             retention_days={"raw": 16, "historized": 30},
             checkpoint=CheckpointState(
                 last_successful_run_at=datetime(
@@ -48,6 +49,7 @@ class _FakeService:
         self.run_result = RunResult(
             run_id="run-123",
             mode="bulk",
+            export_format="parquet",
             plan_result=self.plan_result,
             dataset_results=(
                 DatasetResult(

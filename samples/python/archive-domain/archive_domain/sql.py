@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from .models import EXPORT_FORMAT_DATAPUMP, EXPORT_FORMAT_PARQUET, VALID_EXPORT_FORMATS
+
 
 @dataclass(frozen=True)
 class DatasetQuery:
@@ -24,24 +26,41 @@ def dataset_time_column(dataset: str) -> str:
 
 
 def build_dataset_query(
-    dataset: str, window_start: datetime, window_end: datetime
+    dataset: str,
+    window_start: datetime,
+    window_end: datetime,
+    export_format: str = EXPORT_FORMAT_PARQUET,
 ) -> DatasetQuery:
     """Build the dataset-specific SQL query."""
-    if dataset == "raw":
+    normalized_export_format = export_format.lower()
+    if normalized_export_format not in VALID_EXPORT_FORMATS:
+        raise ValueError(f"Unsupported export format: {export_format}")
+
+    if dataset == "raw" and normalized_export_format == EXPORT_FORMAT_PARQUET:
         sql_text = """
             select
                 id,
                 digital_twin_instance_id,
                 endpoint,
                 time_received,
-                content
+                content_type,
+                ords_utils.blobToJson(content, content_type) as content
             from raw_data
             where time_received >= :window_start
               and time_received < :window_end
             order by time_received, id
         """.strip()
         time_column = "time_received"
-    elif dataset == "historized":
+    elif dataset == "raw" and normalized_export_format == EXPORT_FORMAT_DATAPUMP:
+        sql_text = """
+            select *
+            from raw_data
+            where time_received >= :window_start
+              and time_received < :window_end
+            order by time_received, id
+        """.strip()
+        time_column = "time_received"
+    elif dataset == "historized" and normalized_export_format == EXPORT_FORMAT_PARQUET:
         sql_text = """
             select
                 id,
@@ -57,7 +76,16 @@ def build_dataset_query(
             order by time_observed, id
         """.strip()
         time_column = "time_observed"
-    elif dataset == "rejected":
+    elif dataset == "historized" and normalized_export_format == EXPORT_FORMAT_DATAPUMP:
+        sql_text = """
+            select *
+            from historized_data
+            where time_observed >= :window_start
+              and time_observed < :window_end
+            order by time_observed, id
+        """.strip()
+        time_column = "time_observed"
+    elif dataset == "rejected" and normalized_export_format == EXPORT_FORMAT_PARQUET:
         sql_text = """
             select
                 id,
@@ -66,7 +94,17 @@ def build_dataset_query(
                 time_received,
                 reason_code,
                 reason_message,
-                content
+                content_type,
+                ords_utils.blobToJson(content, content_type) as content
+            from rejected_data
+            where time_received >= :window_start
+              and time_received < :window_end
+            order by time_received, id
+        """.strip()
+        time_column = "time_received"
+    elif dataset == "rejected" and normalized_export_format == EXPORT_FORMAT_DATAPUMP:
+        sql_text = """
+            select *
             from rejected_data
             where time_received >= :window_start
               and time_received < :window_end
@@ -74,7 +112,9 @@ def build_dataset_query(
         """.strip()
         time_column = "time_received"
     else:
-        raise ValueError(f"Unsupported dataset: {dataset}")
+        raise ValueError(
+            f"Unsupported dataset/export_format combination: {dataset}/{export_format}"
+        )
 
     return DatasetQuery(
         dataset=dataset,

@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 from archive_domain.config import (
     ArchiveConfig,
     DatabaseConfig,
     IotConfig,
     ObjectStorageConfig,
+    load_config,
 )
 from archive_domain.models import CheckpointState
 from archive_domain.service import ArchiveService
@@ -59,6 +61,7 @@ def _build_config():
             manifest_prefix="_manifests",
             checkpoint_object="_state/checkpoint.json",
         ),
+        export_format="parquet",
     )
 
 
@@ -80,3 +83,45 @@ def test_run_records_failed_dataset_and_writes_manifest_without_advancing_checkp
     assert result.dataset_results[0].error_message == "simulated export failure"
     assert result.manifest_object_name in state_store.objects
     assert state_store.saved_checkpoints == []
+
+
+def test_load_config_reads_run_level_export_format(tmp_path):
+    config_path = tmp_path / "archive_config.yaml"
+    config_path.write_text(
+        """
+export_format: parquet
+iot:
+  domain_id: ocid1.iotdomain.oc1..exampleuniqueID
+  retention_days:
+    raw: 16
+  bootstrap_lookback_days: 1
+database:
+  connect_string: "tcps:adb.example.com:1522/archive_high"
+  token_scope: "urn:oracle:db::id::*"
+  iot_domain_short_name: sample
+  auth_type: SecurityToken
+  profile: DEFAULT
+  thick_mode: false
+  lib_dir: null
+  dbms_cloud_credential_name: ARCHIVE_CRED
+object_storage:
+  namespace: sample-ns
+  bucket_name: archive-bucket
+  prefix: archive-root
+  manifest_prefix: _manifests
+  checkpoint_object: _state/checkpoint.json
+""".strip(),
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.export_format == "parquet"
+
+
+def test_distributed_config_template_defaults_to_parquet():
+    template = (
+        Path(__file__).resolve().parents[1] / "data" / "archive_config.distr.yaml"
+    ).read_text(encoding="utf-8")
+
+    assert "export_format: parquet" in template

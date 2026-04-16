@@ -1,5 +1,7 @@
 # Archive-domain sample configuration.
 
+export_format: parquet
+
 iot:
   domain_id: <IoT Domain OCID>
   retention_days:
@@ -24,4 +26,3 @@ object_storage:
   prefix: iot-archive
   manifest_prefix: _manifests
   checkpoint_object: _state/checkpoint.json
-

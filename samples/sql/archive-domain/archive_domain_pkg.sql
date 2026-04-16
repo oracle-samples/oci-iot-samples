@@ -505,6 +505,7 @@ create or replace package body archive_domain_pkg as
 
   function build_raw_query(
     p_domain_short_name in varchar2,
+    p_export_format     in varchar2,
     p_window_start      in timestamp with time zone,
     p_window_end        in timestamp with time zone
   ) return clob
@@ -515,7 +516,17 @@ create or replace package body archive_domain_pkg as
       upper(trim(p_domain_short_name)) || '__IOT'
     );
 
-    return 'select * '
+    if p_export_format = 'datapump' then
+      return 'select * '
+             || 'from ' || l_iot_schema || '.raw_data '
+             || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
+             || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
+             || 'order by time_received, id';
+    end if;
+
+    return 'select '
+           || 'id, digital_twin_instance_id, endpoint, time_received, content_type, '
+           || 'ords_utils.blobToJson(content, content_type) as content '
            || 'from ' || l_iot_schema || '.raw_data '
            || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
            || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
@@ -524,6 +535,7 @@ create or replace package body archive_domain_pkg as
 
   function build_historized_query(
     p_domain_short_name in varchar2,
+    p_export_format     in varchar2,
     p_window_start      in timestamp with time zone,
     p_window_end        in timestamp with time zone
   ) return clob
@@ -533,6 +545,14 @@ create or replace package body archive_domain_pkg as
     l_iot_schema := dbms_assert.simple_sql_name(
       upper(trim(p_domain_short_name)) || '__IOT'
     );
+
+    if p_export_format = 'datapump' then
+      return 'select * '
+             || 'from ' || l_iot_schema || '.historized_data '
+             || 'where time_observed >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
+             || 'and time_observed < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
+             || 'order by time_observed, id';
+    end if;
 
     return 'select '
            || 'id, digital_twin_instance_id, content_path, time_observed, '
@@ -547,6 +567,7 @@ create or replace package body archive_domain_pkg as
 
   function build_rejected_query(
     p_domain_short_name in varchar2,
+    p_export_format     in varchar2,
     p_window_start      in timestamp with time zone,
     p_window_end        in timestamp with time zone
   ) return clob
@@ -557,7 +578,18 @@ create or replace package body archive_domain_pkg as
       upper(trim(p_domain_short_name)) || '__IOT'
     );
 
-    return 'select * '
+    if p_export_format = 'datapump' then
+      return 'select * '
+             || 'from ' || l_iot_schema || '.rejected_data '
+             || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
+             || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
+             || 'order by time_received, id';
+    end if;
+
+    return 'select '
+           || 'id, digital_twin_instance_id, endpoint, time_received, '
+           || 'reason_code, reason_message, content_type, '
+           || 'ords_utils.blobToJson(content, content_type) as content '
            || 'from ' || l_iot_schema || '.rejected_data '
            || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
            || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
@@ -716,6 +748,7 @@ create or replace package body archive_domain_pkg as
     l_manifest_json clob;
     l_checkpoint_uri varchar2(4000);
     l_checkpoint_json clob;
+    l_export_format varchar2(30);
   begin
     l_config := load_config(p_config_name => p_config_name);
     l_datasets := parse_datasets(p_dataset_list => p_dataset_list);
@@ -730,6 +763,7 @@ create or replace package body archive_domain_pkg as
 
     l_plan_obj := json_object_t.parse(l_plan_result);
     l_run_at := parse_timestamp(l_plan_obj.get_string('now'));
+    l_export_format := l_plan_obj.get_string('export_format');
     l_plan_datasets_obj := l_plan_obj.get_object('datasets');
     l_checkpoint_before_element := l_plan_obj.get('checkpoint_before');
     if l_checkpoint_before_element is not null and not l_checkpoint_before_element.is_null then
@@ -773,42 +807,72 @@ create or replace package body archive_domain_pkg as
         when 'raw' then
           l_dataset_query := build_raw_query(
             p_domain_short_name => l_domain_short_name,
+            p_export_format     => l_export_format,
             p_window_start      => l_window_start,
             p_window_end        => l_window_end
           );
-          l_dataset_export_format := 'datapump';
-          l_dataset_file_uri_list := build_object_uri(
-            p_region      => l_region,
-            p_namespace   => l_namespace,
-            p_bucket_name => l_bucket_name,
-            p_object_name => l_dataset_object_prefix || '/raw_01.dmp'
-          );
+          l_dataset_export_format := l_export_format;
+          if l_export_format = 'datapump' then
+            l_dataset_file_uri_list := build_object_uri(
+              p_region      => l_region,
+              p_namespace   => l_namespace,
+              p_bucket_name => l_bucket_name,
+              p_object_name => l_dataset_object_prefix || '/raw_01.dmp'
+            );
+          else
+            l_dataset_file_uri_list := build_object_uri(
+              p_region      => l_region,
+              p_namespace   => l_namespace,
+              p_bucket_name => l_bucket_name,
+              p_object_name => l_dataset_object_prefix || '/' || l_dataset
+            );
+          end if;
         when 'historized' then
           l_dataset_query := build_historized_query(
             p_domain_short_name => l_domain_short_name,
+            p_export_format     => l_export_format,
             p_window_start      => l_window_start,
             p_window_end        => l_window_end
           );
-          l_dataset_export_format := 'parquet';
-          l_dataset_file_uri_list := build_object_uri(
-            p_region      => l_region,
-            p_namespace   => l_namespace,
-            p_bucket_name => l_bucket_name,
-            p_object_name => l_dataset_object_prefix || '/' || l_dataset
-          );
+          l_dataset_export_format := l_export_format;
+          if l_export_format = 'datapump' then
+            l_dataset_file_uri_list := build_object_uri(
+              p_region      => l_region,
+              p_namespace   => l_namespace,
+              p_bucket_name => l_bucket_name,
+              p_object_name => l_dataset_object_prefix || '/historized_01.dmp'
+            );
+          else
+            l_dataset_file_uri_list := build_object_uri(
+              p_region      => l_region,
+              p_namespace   => l_namespace,
+              p_bucket_name => l_bucket_name,
+              p_object_name => l_dataset_object_prefix || '/' || l_dataset
+            );
+          end if;
         when 'rejected' then
           l_dataset_query := build_rejected_query(
             p_domain_short_name => l_domain_short_name,
+            p_export_format     => l_export_format,
             p_window_start      => l_window_start,
             p_window_end        => l_window_end
           );
-          l_dataset_export_format := 'datapump';
-          l_dataset_file_uri_list := build_object_uri(
-            p_region      => l_region,
-            p_namespace   => l_namespace,
-            p_bucket_name => l_bucket_name,
-            p_object_name => l_dataset_object_prefix || '/rejected_01.dmp'
-          );
+          l_dataset_export_format := l_export_format;
+          if l_export_format = 'datapump' then
+            l_dataset_file_uri_list := build_object_uri(
+              p_region      => l_region,
+              p_namespace   => l_namespace,
+              p_bucket_name => l_bucket_name,
+              p_object_name => l_dataset_object_prefix || '/rejected_01.dmp'
+            );
+          else
+            l_dataset_file_uri_list := build_object_uri(
+              p_region      => l_region,
+              p_namespace   => l_namespace,
+              p_bucket_name => l_bucket_name,
+              p_object_name => l_dataset_object_prefix || '/' || l_dataset
+            );
+          end if;
       end case;
 
       l_dataset_status := 'planned';
@@ -860,6 +924,7 @@ create or replace package body archive_domain_pkg as
 
       l_result_dataset_obj := json_object_t();
       l_result_dataset_obj.put('status', l_dataset_status);
+      l_result_dataset_obj.put('export_format', l_dataset_export_format);
       l_result_dataset_obj.put('object_prefix', l_dataset_object_prefix);
       l_result_dataset_obj.put('file_uri_list', l_dataset_file_uri_list);
       if l_dataset_error_message is null then
@@ -917,6 +982,7 @@ create or replace package body archive_domain_pkg as
     end if;
 
     l_result_obj.put('run_id', l_run_id);
+    l_result_obj.put('export_format', l_export_format);
     l_result_obj.put('datasets', l_result_datasets_obj);
     l_result_obj.put('manifest_object_name', l_manifest_object_name);
     l_result_obj.put('checkpoint_advanced', l_all_succeeded);

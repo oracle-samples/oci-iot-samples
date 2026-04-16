@@ -5,6 +5,8 @@ set feedback off
 
 declare
   l_chunk_size constant pls_integer := 32767;
+  l_export_format varchar2(32);
+  l_file_uri_list varchar2(4000);
   l_result clob;
   l_offset pls_integer := 1;
   l_status varchar2(32);
@@ -85,6 +87,19 @@ begin
 
   if l_manifest_object_name is null then
     raise_application_error(-20011, 'manifest_object_name missing');
+  end if;
+
+  select json_value(l_result, '$.datasets.historized.export_format' returning varchar2(32)),
+         json_value(l_result, '$.datasets.historized.file_uri_list' returning varchar2(4000))
+    into l_export_format, l_file_uri_list
+    from dual;
+
+  if l_export_format is null or l_export_format != 'parquet' then
+    raise_application_error(-20016, 'historized export_format was not parquet');
+  end if;
+
+  if l_file_uri_list is null or regexp_like(l_file_uri_list, '\.dmp$') then
+    raise_application_error(-20017, 'historized file_uri_list unexpectedly pointed to a dmp object');
   end if;
 
   select json_value(l_result, '$.checkpoint_advanced' returning varchar2(10))

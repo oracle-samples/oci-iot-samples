@@ -94,12 +94,12 @@ begin
     into l_export_format, l_file_uri_list
     from dual;
 
-  if l_export_format is null or l_export_format != 'datapump' then
-    raise_application_error(-20016, 'raw export_format was not datapump');
+  if l_export_format is null or l_export_format != 'parquet' then
+    raise_application_error(-20016, 'raw export_format was not parquet');
   end if;
 
-  if l_file_uri_list is null or l_file_uri_list not like '%.dmp' then
-    raise_application_error(-20017, 'raw file_uri_list did not point to a dmp object');
+  if l_file_uri_list is null or regexp_like(l_file_uri_list, '\.dmp$') then
+    raise_application_error(-20017, 'raw file_uri_list unexpectedly pointed to a dmp object');
   end if;
 
   select json_value(l_result, '$.checkpoint_advanced' returning varchar2(10))

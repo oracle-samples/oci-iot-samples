@@ -55,18 +55,37 @@ class LiveArchiveExecutor:
         self.namespace = namespace
         self.region = region
 
-    def execute_dataset(self, dataset, dataset_plan, mode, object_prefix) -> DatasetResult:
+    def execute_dataset(
+        self,
+        dataset,
+        dataset_plan,
+        mode,
+        object_prefix,
+        export_format,
+    ) -> DatasetResult:
         """Execute archive export for one dataset."""
         actual_mode = choose_execution_mode(
             requested_mode=mode,
-            dbms_cloud_available=bool(self.region and self.config.database.dbms_cloud_credential_name),
-            has_db_export_credentials=bool(self.config.database.dbms_cloud_credential_name),
+            dbms_cloud_available=bool(
+                self.region and self.config.database.dbms_cloud_credential_name
+            ),
+            has_db_export_credentials=bool(
+                self.config.database.dbms_cloud_credential_name
+            ),
         )
+        if actual_mode == "sql":
+            raise RuntimeError(
+                f"sql mode does not support configured export_format {export_format}"
+            )
         if actual_mode == "bulk":
-            return self._execute_bulk(dataset, dataset_plan, object_prefix)
-        return self._execute_sql(dataset, dataset_plan, object_prefix)
+            return self._execute_bulk(
+                dataset, dataset_plan, object_prefix, export_format
+            )
+        return self._execute_sql(dataset, dataset_plan, object_prefix, export_format)
 
-    def _execute_bulk(self, dataset, dataset_plan, object_prefix) -> DatasetResult:
+    def _execute_bulk(
+        self, dataset, dataset_plan, object_prefix, export_format
+    ) -> DatasetResult:
         file_uri_list = build_dbms_cloud_file_uri(
             region=self.region,
             namespace=self.namespace,
@@ -80,6 +99,7 @@ class LiveArchiveExecutor:
             window_end=dataset_plan.window_end,
             credential_name=self.config.database.dbms_cloud_credential_name,
             file_uri_list=file_uri_list,
+            export_format=export_format,
         )
 
         with connect(self.config.database) as connection:
@@ -91,13 +111,18 @@ class LiveArchiveExecutor:
             name=dataset,
             status="succeeded",
             export_mode="bulk",
-            export_format=export_format_for_dataset(dataset),
+            export_format=export_format_for_dataset(dataset, export_format),
             object_prefix=object_prefix,
         )
 
-    def _execute_sql(self, dataset, dataset_plan, object_prefix) -> DatasetResult:
+    def _execute_sql(
+        self, dataset, dataset_plan, object_prefix, export_format
+    ) -> DatasetResult:
         dataset_query = build_dataset_query(
-            dataset, dataset_plan.window_start, dataset_plan.window_end
+            dataset,
+            dataset_plan.window_start,
+            dataset_plan.window_end,
+            export_format=export_format,
         )
 
         buffer = io.BytesIO()
@@ -113,7 +138,9 @@ class LiveArchiveExecutor:
                             column: _normalize_value(value)
                             for column, value in zip(columns, row)
                         }
-                        gzip_file.write(json.dumps(record, sort_keys=True).encode("utf-8"))
+                        gzip_file.write(
+                            json.dumps(record, sort_keys=True).encode("utf-8")
+                        )
                         gzip_file.write(b"\n")
 
         object_name = build_object_name(object_prefix, "part-00000.jsonl.gz")
@@ -128,7 +155,7 @@ class LiveArchiveExecutor:
             name=dataset,
             status="succeeded",
             export_mode="sql",
-            export_format="jsonl.gz",
+            export_format=export_format,
             object_prefix=object_prefix,
             object_names=(object_name,),
         )

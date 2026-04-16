@@ -68,7 +68,9 @@ class ArchiveService:
         self.retention_lookup = retention_lookup or NullRetentionLookup()
         self.state_store = state_store
         self.executor = executor
-        self.clock = clock or (lambda: datetime.now(timezone.utc).replace(microsecond=0))
+        self.clock = clock or (
+            lambda: datetime.now(timezone.utc).replace(microsecond=0)
+        )
 
     def _load_checkpoint(self) -> CheckpointState:
         if self.state_store is None:
@@ -85,10 +87,14 @@ class ArchiveService:
 
         if export_format == EXPORT_FORMAT_DATAPUMP:
             if not _is_datapump_enabled():
-                raise ValueError("datapump export format is not enabled in this environment")
+                raise ValueError(
+                    "datapump export format is not enabled in this environment"
+                )
 
             if len(selected_datasets) != 1:
-                raise ValueError("datapump export format requires selecting exactly one dataset")
+                raise ValueError(
+                    "datapump export format requires selecting exactly one dataset"
+                )
 
     def _resolved_export_format(self) -> str:
         return (self.config.export_format or "parquet").lower()
@@ -175,6 +181,7 @@ class ArchiveService:
                         dataset_plan=plan_result.plan.datasets[dataset],
                         mode=mode,
                         object_prefix=object_prefix,
+                        export_format=plan_result.export_format,
                     )
                 )
             except Exception as exc:
@@ -229,7 +236,9 @@ class ArchiveService:
         )
 
 
-def build_service(config_path: str, profile: str | None = None, auth: str | None = None):
+def build_service(
+    config_path: str, profile: str | None = None, auth: str | None = None
+):
     """Build the archive service from configuration."""
     config = load_config(config_path)
     oci_config, signer = get_oci_config(

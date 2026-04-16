@@ -25,13 +25,18 @@ def test_parquet_raw_and_rejected_queries_project_blob_content_as_json():
     )
 
     assert "content_type" in raw_query.sql_text
-    assert "ords_utils.blobToJson(content, content_type) as content" in raw_query.sql_text
+    assert (
+        "ords_utils.blobToJson(content, content_type) as content" in raw_query.sql_text
+    )
     assert "time_received >= :window_start" in raw_query.sql_text
     assert "time_received < :window_end" in raw_query.sql_text
 
     assert "reason_code" in rejected_query.sql_text
     assert "reason_message" in rejected_query.sql_text
-    assert "ords_utils.blobToJson(content, content_type) as content" in rejected_query.sql_text
+    assert (
+        "ords_utils.blobToJson(content, content_type) as content"
+        in rejected_query.sql_text
+    )
 
 
 def test_datapump_raw_and_rejected_queries_preserve_table_rows():
@@ -63,7 +68,10 @@ def test_parquet_historized_query_remains_explicit_and_json_friendly():
     )
 
     assert historized_query.sql_text.startswith("select")
-    assert "json_serialize(value returning varchar2(32767)) as value_json" in historized_query.sql_text
+    assert (
+        "json_serialize(value returning varchar2(32767)) as value_json"
+        in historized_query.sql_text
+    )
     assert "from historized_data" in historized_query.sql_text
     assert "time_observed >= :window_start" in historized_query.sql_text
     assert "time_observed < :window_end" in historized_query.sql_text
@@ -93,4 +101,6 @@ def test_bulk_export_request_inlines_window_literals_for_dbms_cloud():
     assert ":window_end" not in binds["query_text"]
     assert "to_timestamp_tz('2026-04-01T00:00:00.000000+00:00'" in binds["query_text"]
     assert "to_timestamp_tz('2026-04-02T00:00:00.000000+00:00'" in binds["query_text"]
-    assert "ords_utils.blobToJson(content, content_type) as content" in binds["query_text"]
+    assert (
+        "ords_utils.blobToJson(content, content_type) as content" in binds["query_text"]
+    )

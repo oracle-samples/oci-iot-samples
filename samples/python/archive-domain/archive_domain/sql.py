@@ -169,6 +169,6 @@ def _oracle_timestamp_tz_literal(value: datetime) -> str:
     return (
         "to_timestamp_tz("
         f"'{normalized}', "
-        '\'YYYY-MM-DD"T"HH24:MI:SS.FF6TZH:TZM\''
+        "'YYYY-MM-DD\"T\"HH24:MI:SS.FF6TZH:TZM'"
         ")"
     )

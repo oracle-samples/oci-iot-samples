@@ -140,9 +140,7 @@ def test_run_rejects_datapump_when_feature_flag_disabled(monkeypatch):
     monkeypatch.delenv("ARCHIVE_DOMAIN_DATAPUMP_ENABLED", raising=False)
     service = _build_plan_service(_build_config(export_format="datapump"))
 
-    with pytest.raises(
-        ValueError, match="datapump export format is not enabled"
-    ):
+    with pytest.raises(ValueError, match="datapump export format is not enabled"):
         service.run(datasets="raw", dry_run=True)
 
 
@@ -151,7 +149,8 @@ def test_plan_rejects_multiple_datasets_for_datapump(monkeypatch):
     service = _build_plan_service(_build_config(export_format="datapump"))
 
     with pytest.raises(
-        ValueError, match="datapump export format requires selecting exactly one dataset"
+        ValueError,
+        match="datapump export format requires selecting exactly one dataset",
     ):
         service.plan(datasets="raw,historized")
 

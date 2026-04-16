@@ -41,9 +41,7 @@ class _FakeService:
             export_format="parquet",
             retention_days={"raw": 16, "historized": 30},
             checkpoint=CheckpointState(
-                last_successful_run_at=datetime(
-                    2026, 4, 7, 12, 0, tzinfo=timezone.utc
-                )
+                last_successful_run_at=datetime(2026, 4, 7, 12, 0, tzinfo=timezone.utc)
             ),
         )
         self.run_result = RunResult(

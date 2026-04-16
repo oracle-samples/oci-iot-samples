@@ -22,9 +22,8 @@ The Python implementation supports the same three datasets:
 
 The sample supports two execution modes:
 
-- `bulk`: database-side export using `DBMS_CLOUD.EXPORT_DATA`
-- `sql`: SQL-based fallback when bulk export is unavailable, writing `jsonl.gz`
-  objects to Object Storage
+- `bulk`: database-side export using `DBMS_CLOUD.EXPORT_DATA`; with the distributed config, the run-level `export_format` is `parquet`
+- `sql`: legacy/internal fallback path; it does not satisfy the public Parquet run format and should fail fast when used with the default config
 
 ## Install
 
@@ -38,7 +37,8 @@ pip install .
 ## Configure
 
 Copy `data/archive_config.distr.yaml` to `data/archive_config.yaml` and fill in
-your IoT Domain, direct database, and Object Storage values.
+your IoT Domain, direct database, and Object Storage values. The distributed
+config defaults `export_format` to `parquet`.
 
 ## Usage
 

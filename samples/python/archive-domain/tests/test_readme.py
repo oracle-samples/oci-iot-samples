@@ -9,5 +9,6 @@ def test_readme_mentions_supported_datasets_and_modes():
     assert "rejected" in readme
     assert "bulk" in readme
     assert "sql" in readme
+    assert "parquet" in readme
     assert "DBMS_CLOUD.EXPORT_DATA" in readme
     assert "--dry-run" in readme

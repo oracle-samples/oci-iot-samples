@@ -15,6 +15,18 @@ Both implementations follow the same archive workflow:
 - `run` exports the selected datasets to Object Storage, writes a manifest, and
   advances the checkpoint only when every selected dataset succeeds.
 
+### Export Format
+
+The archive format is chosen once per run from configuration with
+`export_format`.
+
+- The public default is `parquet`.
+- `parquet` applies to `raw`, `historized`, and `rejected`.
+- For `parquet`, `raw` and `rejected` project the `content` column through
+  `ords_utils.blobToJson(content, content_type)` so JSON payloads are exported
+  in a structured form.
+- `datapump` remains an internal blocked path for now.
+
 ### Datasets, Retention, And Archive Windows
 
 Both implementations operate on the same datasets:
@@ -34,10 +46,7 @@ archive window from:
 
 ### Object Storage Layout And State
 
-The archive output uses `bronze` / `silver` zone names following the common
-medallion architecture pattern: bronze for raw ingested data and silver for
-historized data. This sample uses bronze and silver only. See [What is the
-medallion lakehouse architecture?](https://learn.microsoft.com/en-us/azure/databricks/lakehouse/medallion).
+The archive keeps the existing partitioned Object Storage layout:
 
 Both implementations write:
 
@@ -81,24 +90,24 @@ of same-tenancy bucket policies.
 
 ### Current Blockers
 
-Using Data Pump in the IoT Platform database is waiting on the dev team to
-investigate the following grant:
+Data Pump format remains behind an internal feature flag until the IoT Platform
+team resolves database-side access to `DATA_PUMP_DIR`. The current investigation
+is about the following grant:
 
 ```sql
 GRANT READ, WRITE ON DIRECTORY DATA_PUMP_DIR TO <domainShortId>__WKSP;
 ```
 
-This affects the SQL sample and the Python sample's bulk mode when they rely on
-database-side Data Pump export for bronze datasets. The investigation is
-tracked in [IOTNG-6379](https://jira.oci.oraclecorp.com/browse/IOTNG-6379).
+Until that is available, the operator-facing path is `parquet`, and attempts to
+use `datapump` should fail fast. The investigation is tracked in
+[IOTNG-6379](https://jira.oci.oraclecorp.com/browse/IOTNG-6379).
 
 ## SQL-Specific Notes
 
-The DB-driven format choices are:
-
-- `historized` exports as Parquet
-- `raw` exports as Data Pump
-- `rejected` exports as Data Pump
+The SQL sample reads `export_format` from `archive_domain_config.config_json`.
+With the distributed sample config, all selected datasets export as Parquet.
+The hidden Data Pump path is retained in code for future rollout, but it is not
+the public/default operating mode.
 
 ## Prerequisites
 
@@ -126,7 +135,7 @@ The package reads every runtime setting from `archive_domain_config`:
 | Column | Purpose |
 | --- | --- |
 | `config_name` | Logical identifier, defaults to `default`. |
-| `config_json` | JSON payload that points to domain IDs, bucket/namespace/prefix, checkpoint object, DBMS_CLOUD credential name, retention days per dataset, and bootstrap lookback. |
+| `config_json` | JSON payload that points to domain IDs, bucket/namespace/prefix, checkpoint object, DBMS_CLOUD credential name, run-level `export_format`, retention days per dataset, and bootstrap lookback. |
 
 For normal setup, copy:
 
@@ -168,7 +177,7 @@ python3 samples/sql/archive-domain/load_config.py \
 ```
 
 The distributed JSON template includes placeholders for the bucket layout and
-`dbms_cloud_credential_name`, and is the recommended starting point for
+`dbms_cloud_credential_name`, defaults `export_format` to `parquet`, and is the recommended starting point for
 operator-managed configuration.
 
 ## Planning With `archive_domain_pkg.plan`
@@ -208,7 +217,7 @@ Inspect `$.datasets.<name>.window_start` / `window_end` plus `checkpoint_before`
 
 ## Running With `archive_domain_pkg.run`
 
-`archive_domain_pkg.run` exports `historized` as Parquet and `raw` / `rejected` as Data Pump through `DBMS_CLOUD.EXPORT_DATA`, writes a JSON manifest under `<prefix>/_manifests/run_id=<...>.json`, and advances the checkpoint at `<prefix>/_state/checkpoint.json` only after all exports succeed:
+`archive_domain_pkg.run` reads the run-level `export_format` from config, exports the selected datasets through `DBMS_CLOUD.EXPORT_DATA`, writes a JSON manifest under `<prefix>/_manifests/run_id=<...>.json`, and advances the checkpoint at `<prefix>/_state/checkpoint.json` only after all exports succeed:
 
 ```sql
 set serveroutput on size unlimited
@@ -232,15 +241,14 @@ end;
 3. Build a `run_id` and dataset-specific object prefixes.
 4. For each selected dataset:
    - build the dataset query
-   - export `historized` with Parquet
-   - export `raw` / `rejected` with Data Pump
+   - export with the configured run-level format
 5. Write a manifest JSON object to Object Storage.
 6. Write the checkpoint JSON only if every selected dataset succeeded.
 7. Return the run result as JSON, including per-dataset statuses and the manifest object name.
 
-The returned JSON includes per-dataset statuses and the manifest path. Re-run with a different `p_dataset_list` or `p_end_time` to export additional windows.
-
-For bronze datasets, the archive now preserves the database rows through Data Pump rather than rewriting the `BLOB` payloads into text.
+The returned JSON includes per-dataset statuses, per-dataset `export_format`,
+and the manifest path. Re-run with a different `p_dataset_list` or `p_end_time`
+to export additional windows.
 
 ## Manual Validation & Object Storage Verification
 
@@ -250,6 +258,6 @@ For bronze datasets, the archive now preserves the database rows through Data Pu
    - A manifest JSON appears under `_manifests/run_id=<run-id>.json`.
    - The checkpoint JSON at `_state/checkpoint.json` reflects the new `last_successful_run_at`.
    - Dataset exports land under `zone=bronze` / `zone=silver` paths with `dataset=<name>` segments.
-   - `raw` and `rejected` exports are written as `.dmp` objects.
-   - `historized` exports use Parquet.
+   - `$.datasets.<name>.export_format` matches the configured run-level format.
+   - With the distributed config, exported objects are Parquet rather than `.dmp`.
 4. Re-run `archive_domain_pkg.plan` to ensure the next window uses the updated checkpoint.

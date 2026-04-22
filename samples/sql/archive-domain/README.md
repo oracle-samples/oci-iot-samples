@@ -23,8 +23,9 @@ The archive format is chosen once per run from configuration with
 - The public default is `parquet`.
 - `parquet` applies to `raw`, `historized`, and `rejected`.
 - For `parquet`, `raw` and `rejected` project the `content` column through
-  `ords_utils.blobToJson(content, content_type)` so JSON payloads are exported
-  in a structured form.
+  `archive_domain_content_utils.blob_to_json(content, content_type)`, which
+  preserves JSON when possible and falls back to JSON string or base64 string
+  output when the payload is not directly parseable as JSON.
 - `datapump` remains an internal blocked path for now.
 
 ### Datasets, Retention, And Archive Windows
@@ -102,12 +103,20 @@ Until that is available, the operator-facing path is `parquet`, and attempts to
 use `datapump` should fail fast. The investigation is tracked in
 [IOTNG-6379](https://jira.oci.oraclecorp.com/browse/IOTNG-6379).
 
+Parquet export implementation is waiting on resolution of
+[IOTNG-6522](https://jira.oci.oraclecorp.com/browse/IOTNG-6522), which would
+give us access to the `blobToJson` functionality implemented in `ORDS_UTILS`.
+
 ## SQL-Specific Notes
 
 The SQL sample reads `export_format` from `archive_domain_config.config_json`.
 With the distributed sample config, all selected datasets export as Parquet.
 The hidden Data Pump path is retained in code for future rollout, but it is not
 the public/default operating mode.
+
+The install step also creates `archive_domain_content_utils`, a small `__WKSP`
+package used by the Parquet queries for `raw` and `rejected` content
+conversion.
 
 ## Prerequisites
 

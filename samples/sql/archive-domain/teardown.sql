@@ -26,6 +26,21 @@ end;
 /
 
 declare
+  l_package_exists number;
+begin
+  select count(*)
+    into l_package_exists
+    from user_objects
+   where object_name = 'ARCHIVE_DOMAIN_CONTENT_UTILS'
+     and object_type in ('PACKAGE', 'PACKAGE BODY');
+
+  if l_package_exists > 0 then
+    execute immediate 'drop package archive_domain_content_utils';
+  end if;
+end;
+/
+
+declare
   l_trigger_exists number;
 begin
   select count(*)

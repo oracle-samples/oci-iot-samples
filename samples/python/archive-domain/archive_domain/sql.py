@@ -29,6 +29,7 @@ def build_dataset_query(
     dataset: str,
     window_start: datetime,
     window_end: datetime,
+    domain_short_name: str | None = None,
     export_format: str = EXPORT_FORMAT_PARQUET,
 ) -> DatasetQuery:
     """Build the dataset-specific SQL query."""
@@ -37,6 +38,7 @@ def build_dataset_query(
         raise ValueError(f"Unsupported export format: {export_format}")
 
     if dataset == "raw" and normalized_export_format == EXPORT_FORMAT_PARQUET:
+        content_utils_expr = _blob_to_json_expr(domain_short_name)
         sql_text = """
             select
                 id,
@@ -44,12 +46,12 @@ def build_dataset_query(
                 endpoint,
                 time_received,
                 content_type,
-                ords_utils.blobToJson(content, content_type) as content
+                {content_utils_expr} as content
             from raw_data
             where time_received >= :window_start
               and time_received < :window_end
             order by time_received, id
-        """.strip()
+        """.strip().format(content_utils_expr=content_utils_expr)
         time_column = "time_received"
     elif dataset == "raw" and normalized_export_format == EXPORT_FORMAT_DATAPUMP:
         sql_text = """
@@ -86,6 +88,7 @@ def build_dataset_query(
         """.strip()
         time_column = "time_observed"
     elif dataset == "rejected" and normalized_export_format == EXPORT_FORMAT_PARQUET:
+        content_utils_expr = _blob_to_json_expr(domain_short_name)
         sql_text = """
             select
                 id,
@@ -95,12 +98,12 @@ def build_dataset_query(
                 reason_code,
                 reason_message,
                 content_type,
-                ords_utils.blobToJson(content, content_type) as content
+                {content_utils_expr} as content
             from rejected_data
             where time_received >= :window_start
               and time_received < :window_end
             order by time_received, id
-        """.strip()
+        """.strip().format(content_utils_expr=content_utils_expr)
         time_column = "time_received"
     elif dataset == "rejected" and normalized_export_format == EXPORT_FORMAT_DATAPUMP:
         sql_text = """
@@ -121,6 +124,17 @@ def build_dataset_query(
         sql_text=sql_text,
         binds={"window_start": window_start, "window_end": window_end},
         time_column=time_column,
+    )
+
+
+def _blob_to_json_expr(domain_short_name: str | None) -> str:
+    if not domain_short_name:
+        raise ValueError(
+            "domain_short_name is required for parquet raw/rejected content conversion"
+        )
+    return (
+        f"{domain_short_name}__WKSP."
+        "archive_domain_content_utils.blob_to_json(content, content_type)"
     )
 
 

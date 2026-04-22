@@ -511,9 +511,13 @@ create or replace package body archive_domain_pkg as
   ) return clob
   is
     l_iot_schema varchar2(261);
+    l_wksp_schema varchar2(261);
   begin
     l_iot_schema := dbms_assert.simple_sql_name(
       upper(trim(p_domain_short_name)) || '__IOT'
+    );
+    l_wksp_schema := dbms_assert.simple_sql_name(
+      upper(trim(p_domain_short_name)) || '__WKSP'
     );
 
     if p_export_format = 'datapump' then
@@ -526,7 +530,7 @@ create or replace package body archive_domain_pkg as
 
     return 'select '
            || 'id, digital_twin_instance_id, endpoint, time_received, content_type, '
-           || 'ords_utils.blobToJson(content, content_type) as content '
+           || l_wksp_schema || '.archive_domain_content_utils.blob_to_json(content, content_type) as content '
            || 'from ' || l_iot_schema || '.raw_data '
            || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
            || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
@@ -573,9 +577,13 @@ create or replace package body archive_domain_pkg as
   ) return clob
   is
     l_iot_schema varchar2(261);
+    l_wksp_schema varchar2(261);
   begin
     l_iot_schema := dbms_assert.simple_sql_name(
       upper(trim(p_domain_short_name)) || '__IOT'
+    );
+    l_wksp_schema := dbms_assert.simple_sql_name(
+      upper(trim(p_domain_short_name)) || '__WKSP'
     );
 
     if p_export_format = 'datapump' then
@@ -589,7 +597,7 @@ create or replace package body archive_domain_pkg as
     return 'select '
            || 'id, digital_twin_instance_id, endpoint, time_received, '
            || 'reason_code, reason_message, content_type, '
-           || 'ords_utils.blobToJson(content, content_type) as content '
+           || l_wksp_schema || '.archive_domain_content_utils.blob_to_json(content, content_type) as content '
            || 'from ' || l_iot_schema || '.rejected_data '
            || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
            || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '

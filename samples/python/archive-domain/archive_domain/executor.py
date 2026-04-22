@@ -99,6 +99,7 @@ class LiveArchiveExecutor:
             window_end=dataset_plan.window_end,
             credential_name=self.config.database.dbms_cloud_credential_name,
             file_uri_list=file_uri_list,
+            domain_short_name=self.config.database.iot_domain_short_name,
             export_format=export_format,
         )
 
@@ -122,6 +123,7 @@ class LiveArchiveExecutor:
             dataset,
             dataset_plan.window_start,
             dataset_plan.window_end,
+            domain_short_name=self.config.database.iot_domain_short_name,
             export_format=export_format,
         )
 

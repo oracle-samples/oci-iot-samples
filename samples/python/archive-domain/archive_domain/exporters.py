@@ -28,11 +28,16 @@ def build_bulk_export_request(
     window_end,
     credential_name: str,
     file_uri_list: str,
+    domain_short_name: str,
     export_format: str = "parquet",
 ) -> tuple[DatasetQuery, str, dict]:
     """Build the dataset query and DBMS_CLOUD export statement."""
     dataset_query = build_dataset_query(
-        dataset, window_start, window_end, export_format=export_format
+        dataset,
+        window_start,
+        window_end,
+        domain_short_name=domain_short_name,
+        export_format=export_format,
     )
     statement, binds = build_dbms_cloud_export_statement(
         dataset_query=dataset_query,

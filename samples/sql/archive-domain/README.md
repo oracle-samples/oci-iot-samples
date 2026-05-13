@@ -26,7 +26,7 @@ The archive format is chosen once per run from configuration with
   `archive_domain_content_utils.blob_to_json(content, content_type)`, which
   preserves JSON when possible and falls back to JSON string or base64 string
   output when the payload is not directly parseable as JSON.
-- `datapump` remains an internal blocked path for now.
+- `datapump` remains an internal feature-flagged path.
 
 ### Datasets, Retention, And Archive Windows
 
@@ -88,24 +88,6 @@ Allow <group-or-user-scope> to manage objects in compartment <bucket_compartment
 If the writer principal is in a different tenancy from the bucket, use the
 usual OCI cross-tenancy `Define` / `Endorse` / `Admit` policy pattern instead
 of same-tenancy bucket policies.
-
-### Current Blockers
-
-Data Pump format remains behind an internal feature flag until the IoT Platform
-team resolves database-side access to `DATA_PUMP_DIR`. The current investigation
-is about the following grant:
-
-```sql
-GRANT READ, WRITE ON DIRECTORY DATA_PUMP_DIR TO <domainShortId>__WKSP;
-```
-
-Until that is available, the operator-facing path is `parquet`, and attempts to
-use `datapump` should fail fast. The investigation is tracked in
-[IOTNG-6379](https://jira.oci.oraclecorp.com/browse/IOTNG-6379).
-
-Parquet export implementation is waiting on resolution of
-[IOTNG-6522](https://jira.oci.oraclecorp.com/browse/IOTNG-6522), which would
-give us access to the `blobToJson` functionality implemented in `ORDS_UTILS`.
 
 ## SQL-Specific Notes
 

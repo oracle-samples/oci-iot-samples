@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Configuration constants for the IoT Platform queue samples.
 
+Copyright (c) 2025, 2026 Oracle and/or its affiliates.
+Licensed under the Universal Permissive License v 1.0 as shown at
+https://oss.oracle.com/licenses/upl
+
+DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+
 This file defines database and authentication parameters. Copy and rename to
 config.py, then edit values as needed.
 

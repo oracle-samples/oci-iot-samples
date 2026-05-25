@@ -21,7 +21,9 @@ The archive format is chosen once per run from configuration with
 `export_format`.
 
 - The public default is `parquet`.
+- `datapump` is also a supported run-level export format.
 - `parquet` applies to `raw`, `historized`, and `rejected`.
+- `datapump` applies to `raw`, `historized`, and `rejected`.
 - For `parquet`, `raw` and `rejected` project the `content` column through
   `<DomainShortId>__IOT.ords_utils.blobToJson(content, content_type)`.
 - Parquet `raw` and `rejected` exports also include:
@@ -32,7 +34,6 @@ The archive format is chosen once per run from configuration with
 - JSON-looking payloads are classified as `json` / `parsed-json` only when the
   payload is strict JSON. Malformed `application/json` payloads fall back to
   `base64` / `base64-string`.
-- `datapump` remains an internal feature-flagged path.
 
 ### Datasets, Retention, And Archive Windows
 
@@ -99,8 +100,7 @@ of same-tenancy bucket policies.
 
 The SQL sample reads `export_format` from `archive_domain_config.config_json`.
 With the distributed sample config, all selected datasets export as Parquet.
-The hidden Data Pump path is retained in code for future rollout, but it is not
-the public/default operating mode.
+Set `export_format` to `datapump` when you want Data Pump output instead.
 
 ## Prerequisites
 
@@ -170,8 +170,10 @@ python3 samples/sql/archive-domain/load_config.py \
 ```
 
 The distributed JSON template includes placeholders for the bucket layout and
-`dbms_cloud_credential_name`, defaults `export_format` to `parquet`, and is the recommended starting point for
-operator-managed configuration.
+`dbms_cloud_credential_name`, defaults `export_format` to `parquet`, and is the
+recommended starting point for operator-managed configuration. Change
+`export_format` to `datapump` when you want Data Pump exports for the selected
+run.
 
 ## Planning With `archive_domain_pkg.plan`
 
@@ -252,5 +254,6 @@ to export additional windows.
    - The checkpoint JSON at `_state/checkpoint.json` reflects the new `last_successful_run_at`.
    - Dataset exports land under `zone=bronze` / `zone=silver` paths with `dataset=<name>` segments.
    - `$.datasets.<name>.export_format` matches the configured run-level format.
-   - With the distributed config, exported objects are Parquet rather than `.dmp`.
+   - With `export_format = parquet`, exported objects are Parquet.
+   - With `export_format = datapump`, exported objects are Data Pump dump files.
 4. Re-run `archive_domain_pkg.plan` to ensure the next window uses the updated checkpoint.

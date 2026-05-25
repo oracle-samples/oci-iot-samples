@@ -22,8 +22,8 @@ The Python implementation supports the same three datasets:
 
 The sample supports two execution modes:
 
-- `bulk`: database-side export using `DBMS_CLOUD.EXPORT_DATA`; with the distributed config, the run-level `export_format` is `parquet`
-- `sql`: legacy/internal fallback path; it does not satisfy the public Parquet run format and should fail fast when used with the default config
+- `bulk`: database-side export using `DBMS_CLOUD.EXPORT_DATA`; supports both `parquet` and `datapump` based on the run-level `export_format`
+- `sql`: direct-query execution path used when you explicitly select it
 
 For Parquet `raw` and `rejected` exports, the sample emits:
 
@@ -56,8 +56,9 @@ pip install .
 ## Configure
 
 Copy `data/archive_config.distr.yaml` to `data/archive_config.yaml` and fill in
-your IoT Domain, direct database, and Object Storage values. The distributed
-config defaults `export_format` to `parquet`.
+your IoT Domain, direct database, and Object Storage values. Set
+`export_format` to either `parquet` or `datapump`. The distributed config
+defaults to `parquet`.
 
 ## Usage
 

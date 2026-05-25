@@ -155,6 +155,13 @@ def test_plan_rejects_multiple_datasets_for_datapump(monkeypatch):
         service.plan(datasets="raw,historized")
 
 
+def test_plan_rejects_empty_normalized_dataset_selection():
+    service = _build_plan_service(_build_config(export_format="parquet"))
+
+    with pytest.raises(ValueError, match="Dataset list cannot be empty"):
+        service.plan(datasets=" , , ")
+
+
 def test_plan_allows_multiple_datasets_for_parquet(monkeypatch):
     monkeypatch.delenv("ARCHIVE_DOMAIN_DATAPUMP_ENABLED", raising=False)
     service = ArchiveService(
@@ -167,3 +174,19 @@ def test_plan_allows_multiple_datasets_for_parquet(monkeypatch):
 
     assert result.export_format == "parquet"
     assert result.plan.selected_datasets == ("raw", "historized")
+
+
+def test_run_does_not_advance_checkpoint_for_empty_status_map():
+    state_store = _MemoryStateStore()
+    service = ArchiveService(
+        config=_build_config(export_format="parquet"),
+        retention_lookup=_StaticRetentionLookup(),
+        state_store=state_store,
+        executor=_FailingExecutor(),
+        clock=lambda: datetime(2026, 4, 8, 12, 0, tzinfo=timezone.utc),
+    )
+
+    with pytest.raises(ValueError, match="Dataset list cannot be empty"):
+        service.run(datasets=" , , ")
+
+    assert state_store.saved_checkpoints == []

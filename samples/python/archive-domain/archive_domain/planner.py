@@ -13,6 +13,8 @@ def parse_datasets(value: str | None) -> tuple[str, ...]:
         return VALID_DATASETS
 
     selected = {item.strip().lower() for item in value.split(",") if item.strip()}
+    if not selected:
+        raise ValueError("Dataset list cannot be empty")
     unknown = sorted(selected.difference(VALID_DATASETS))
     if unknown:
         raise ValueError(f"Unknown datasets: {', '.join(unknown)}")

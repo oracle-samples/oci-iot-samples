@@ -23,9 +23,15 @@ The archive format is chosen once per run from configuration with
 - The public default is `parquet`.
 - `parquet` applies to `raw`, `historized`, and `rejected`.
 - For `parquet`, `raw` and `rejected` project the `content` column through
-  `archive_domain_content_utils.blob_to_json(content, content_type)`, which
-  preserves JSON when possible and falls back to JSON string or base64 string
-  output when the payload is not directly parseable as JSON.
+  `<DomainShortId>__IOT.ords_utils.blobToJson(content, content_type)`.
+- Parquet `raw` and `rejected` exports also include:
+  - `content_encoding`
+  - `content_representation`
+- Consumers should use those companion columns together with `content_type` to
+  interpret `content` safely.
+- JSON-looking payloads are classified as `json` / `parsed-json` only when the
+  payload is strict JSON. Malformed `application/json` payloads fall back to
+  `base64` / `base64-string`.
 - `datapump` remains an internal feature-flagged path.
 
 ### Datasets, Retention, And Archive Windows
@@ -95,10 +101,6 @@ The SQL sample reads `export_format` from `archive_domain_config.config_json`.
 With the distributed sample config, all selected datasets export as Parquet.
 The hidden Data Pump path is retained in code for future rollout, but it is not
 the public/default operating mode.
-
-The install step also creates `archive_domain_content_utils`, a small `__WKSP`
-package used by the Parquet queries for `raw` and `rejected` content
-conversion.
 
 ## Prerequisites
 

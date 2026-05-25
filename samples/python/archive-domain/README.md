@@ -25,6 +25,25 @@ The sample supports two execution modes:
 - `bulk`: database-side export using `DBMS_CLOUD.EXPORT_DATA`; with the distributed config, the run-level `export_format` is `parquet`
 - `sql`: legacy/internal fallback path; it does not satisfy the public Parquet run format and should fail fast when used with the default config
 
+For Parquet `raw` and `rejected` exports, the sample emits:
+
+- `content`
+- `content_type`
+- `content_encoding`
+- `content_representation`
+
+Consumers should use `content_encoding` and `content_representation` together
+with `content_type` to interpret `content` safely.
+
+Expected combinations are:
+
+- `content_encoding = json`, `content_representation = parsed-json`
+- `content_encoding = text`, `content_representation = json-string`
+- `content_encoding = base64`, `content_representation = base64-string`
+
+Malformed `application/json` payloads fall back to
+`base64` / `base64-string`.
+
 ## Install
 
 ```sh

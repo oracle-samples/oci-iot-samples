@@ -13,8 +13,5 @@ whenever sqlerror exit sql.sqlcode
 prompt Creating archive_domain_config table
 @@archive_domain_tables.sql
 
-prompt Creating archive_domain_content_utils
-@@archive_domain_content_utils.sql
-
 prompt Creating archive_domain_pkg
 @@archive_domain_pkg.sql

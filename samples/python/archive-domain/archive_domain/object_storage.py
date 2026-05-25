@@ -13,6 +13,8 @@ from .models import CheckpointState
 
 def should_advance_checkpoint(statuses: dict[str, str]) -> bool:
     """Advance the checkpoint only if all selected datasets succeeded."""
+    if not statuses:
+        return False
     return all(status == "succeeded" for status in statuses.values())
 
 
@@ -89,8 +91,12 @@ class ObjectStorageStateStore:
                 bucket_name=self.bucket_name,
                 object_name=object_name,
             )
-        except Exception:
-            return None
+        except Exception as exc:
+            status = getattr(exc, "status", None)
+            code = getattr(exc, "code", None)
+            if status == 404 or code == "ObjectNotFound":
+                return None
+            raise
 
         return json.loads(response.data.content.decode("utf-8"))
 

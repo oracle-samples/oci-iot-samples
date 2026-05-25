@@ -8,6 +8,7 @@ config.py
 !samples/python/archive-domain/archive_domain/config.py
 iot_config.yaml
 data_access.json
+samples/python/archive-domain/data/archive_config.yaml
 
 # Certificates
 *.pem

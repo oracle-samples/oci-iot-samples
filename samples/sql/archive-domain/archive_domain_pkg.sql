@@ -503,6 +503,48 @@ create or replace package body archive_domain_pkg as
            || ''',''YYYY-MM-DD"T"HH24:MI:SS.FF3TZH:TZM'')';
   end to_sql_timestamp_tz_literal;
 
+  function normalized_content_type_sql return varchar2
+  is
+  begin
+    return 'lower(trim(regexp_substr(content_type, ''^[^;]+'')))';
+  end normalized_content_type_sql;
+
+  function json_candidate_sql return varchar2
+  is
+  begin
+    return 'to_clob(utl_raw.cast_to_varchar2(dbms_lob.substr(content, 32767, 1)))';
+  end json_candidate_sql;
+
+  function content_encoding_sql return varchar2
+  is
+    l_content_type_expr varchar2(4000);
+    l_json_candidate_expr varchar2(4000);
+  begin
+    l_content_type_expr := normalized_content_type_sql();
+    l_json_candidate_expr := json_candidate_sql();
+    return 'case '
+           || 'when ' || l_content_type_expr || ' like ''text/%'' then ''text'' '
+           || 'when ' || l_content_type_expr || ' is null or instr(' || l_content_type_expr || ', ''json'') > 0 then '
+           || 'case when ' || l_json_candidate_expr || ' is json strict then ''json'' else ''base64'' end '
+           || 'else ''base64'' '
+           || 'end';
+  end content_encoding_sql;
+
+  function content_representation_sql return varchar2
+  is
+    l_content_type_expr varchar2(4000);
+    l_json_candidate_expr varchar2(4000);
+  begin
+    l_content_type_expr := normalized_content_type_sql();
+    l_json_candidate_expr := json_candidate_sql();
+    return 'case '
+           || 'when ' || l_content_type_expr || ' like ''text/%'' then ''json-string'' '
+           || 'when ' || l_content_type_expr || ' is null or instr(' || l_content_type_expr || ', ''json'') > 0 then '
+           || 'case when ' || l_json_candidate_expr || ' is json strict then ''parsed-json'' else ''base64-string'' end '
+           || 'else ''base64-string'' '
+           || 'end';
+  end content_representation_sql;
+
   function build_raw_query(
     p_domain_short_name in varchar2,
     p_export_format     in varchar2,
@@ -511,13 +553,9 @@ create or replace package body archive_domain_pkg as
   ) return clob
   is
     l_iot_schema varchar2(261);
-    l_wksp_schema varchar2(261);
   begin
     l_iot_schema := dbms_assert.simple_sql_name(
       upper(trim(p_domain_short_name)) || '__IOT'
-    );
-    l_wksp_schema := dbms_assert.simple_sql_name(
-      upper(trim(p_domain_short_name)) || '__WKSP'
     );
 
     if p_export_format = 'datapump' then
@@ -530,7 +568,9 @@ create or replace package body archive_domain_pkg as
 
     return 'select '
            || 'id, digital_twin_instance_id, endpoint, time_received, content_type, '
-           || l_wksp_schema || '.archive_domain_content_utils.blob_to_json(content, content_type) as content '
+           || content_encoding_sql() || ' as content_encoding, '
+           || content_representation_sql() || ' as content_representation, '
+           || l_iot_schema || '.ords_utils.blobToJson(content, content_type) as content '
            || 'from ' || l_iot_schema || '.raw_data '
            || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
            || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '
@@ -577,13 +617,9 @@ create or replace package body archive_domain_pkg as
   ) return clob
   is
     l_iot_schema varchar2(261);
-    l_wksp_schema varchar2(261);
   begin
     l_iot_schema := dbms_assert.simple_sql_name(
       upper(trim(p_domain_short_name)) || '__IOT'
-    );
-    l_wksp_schema := dbms_assert.simple_sql_name(
-      upper(trim(p_domain_short_name)) || '__WKSP'
     );
 
     if p_export_format = 'datapump' then
@@ -597,7 +633,9 @@ create or replace package body archive_domain_pkg as
     return 'select '
            || 'id, digital_twin_instance_id, endpoint, time_received, '
            || 'reason_code, reason_message, content_type, '
-           || l_wksp_schema || '.archive_domain_content_utils.blob_to_json(content, content_type) as content '
+           || content_encoding_sql() || ' as content_encoding, '
+           || content_representation_sql() || ' as content_representation, '
+           || l_iot_schema || '.ords_utils.blobToJson(content, content_type) as content '
            || 'from ' || l_iot_schema || '.rejected_data '
            || 'where time_received >= ' || to_sql_timestamp_tz_literal(p_window_start) || ' '
            || 'and time_received < ' || to_sql_timestamp_tz_literal(p_window_end) || ' '

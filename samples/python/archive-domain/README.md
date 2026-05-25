@@ -25,6 +25,10 @@ The sample supports two execution modes:
 - `bulk`: database-side export using `DBMS_CLOUD.EXPORT_DATA`; supports both `parquet` and `datapump` based on the run-level `export_format`
 - `sql`: direct-query execution path used when you explicitly select it
 
+## Export Formats
+
+### Parquet
+
 For Parquet `raw` and `rejected` exports, the sample emits:
 
 - `content`
@@ -43,6 +47,11 @@ Expected combinations are:
 
 Malformed `application/json` payloads fall back to
 `base64` / `base64-string`.
+
+### Data Pump
+
+Set `export_format` to `datapump` when you want database-side Data Pump exports
+from the `bulk` execution path.
 
 ## Install
 

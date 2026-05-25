@@ -15,25 +15,32 @@ Both implementations follow the same archive workflow:
 - `run` exports the selected datasets to Object Storage, writes a manifest, and
   advances the checkpoint only when every selected dataset succeeds.
 
-### Export Format
+### Export Formats
 
 The archive format is chosen once per run from configuration with
 `export_format`.
 
+#### Parquet
+
 - The public default is `parquet`.
-- `datapump` is also a supported run-level export format.
 - `parquet` applies to `raw`, `historized`, and `rejected`.
-- `datapump` applies to `raw`, `historized`, and `rejected`.
 - For `parquet`, `raw` and `rejected` project the `content` column through
   `<DomainShortId>__IOT.ords_utils.blobToJson(content, content_type)`.
 - Parquet `raw` and `rejected` exports also include:
   - `content_encoding`
   - `content_representation`
-- Consumers should use those companion columns together with `content_type` to
+- Use these companion columns together with `content_type` to
   interpret `content` safely.
 - JSON-looking payloads are classified as `json` / `parsed-json` only when the
   payload is strict JSON. Malformed `application/json` payloads fall back to
   `base64` / `base64-string`.
+
+#### Data Pump
+
+- `datapump` is also a supported run-level export format.
+- `datapump` applies to `raw`, `historized`, and `rejected`.
+- Use `datapump` when you want fidelity-preserving database exports rather than
+  Parquet representations.
 
 ### Datasets, Retention, And Archive Windows
 
@@ -43,7 +50,7 @@ Both implementations operate on the same datasets:
 - `historized`
 - `rejected`
 
-The IoT Platform purges data according to dataset-specific retention periods.
+The IoT Platform purges data according to dataset-specific retention periods, configured by the IoT domain administrator.
 Both implementations use those retention values to compute the purge boundary
 for each dataset (`now - retention_days`) and then derive the newly at-risk
 archive window from:
@@ -54,7 +61,7 @@ archive window from:
 
 ### Object Storage Layout And State
 
-The archive keeps the existing partitioned Object Storage layout:
+The archive writes dataset exports into a partitioned Object Storage layout organized by domain, zone, dataset, and time window.
 
 Both implementations write:
 
@@ -104,7 +111,7 @@ Set `export_format` to `datapump` when you want Data Pump output instead.
 
 ## Prerequisites
 
-- An IoT Domain (for example `ocid1.iotdomain.oc1..example`).
+- An IoT Domain
 - A workspace database user configured to connect with `WKSP_PROXY_USER` (see [samples/script/query-db/README.md](../../script/query-db/README.md) for the connection flow used here).
 - A `DBMS_CLOUD` credential that can write to the archive bucket. The sample uses the placeholder name `DOMAIN_ARCHIVE_TEST` (the same name referenced from the sample config). Create it with `DBMS_CLOUD.CREATE_CREDENTIAL` before calling the package routines.
 - Object Storage namespace/bucket for checkpoints and manifests. The config row seeds `prefix` values such as `<bucket>/<prefix>` and `_state/checkpoint.json`.
@@ -130,7 +137,7 @@ The package reads every runtime setting from `archive_domain_config`:
 | `config_name` | Logical identifier, defaults to `default`. |
 | `config_json` | JSON payload that points to domain IDs, bucket/namespace/prefix, checkpoint object, DBMS_CLOUD credential name, run-level `export_format`, retention days per dataset, and bootstrap lookback. |
 
-For normal setup, copy:
+To configure the sample, copy:
 
 ```text
 samples/sql/archive-domain/data/archive_config.distr.json

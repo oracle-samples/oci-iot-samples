@@ -1,0 +1,5 @@
+[Unit]
+Description=OCI IoT Node-RED gateway sample network
+
+[Network]
+NetworkName=oci-iot-node-red-gateway

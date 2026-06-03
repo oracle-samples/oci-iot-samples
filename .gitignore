@@ -17,6 +17,9 @@ data_access.json
 # Diagram backup files
 .$*.bkp
 
+# Local planning notes
+docs/
+
 # Terraform script output
 iot-device-*.json
 

@@ -1,0 +1,23 @@
+[
+  {
+    "condition": "${endpoint(1) == \"gateway\" and endpoint(2) == \"metrics\"}",
+    "description": "Gateway metrics",
+    "payloadMapping": {
+      "$.commandsForwarded": "$.commandsForwarded",
+      "$.commandsReceived": "$.commandsReceived",
+      "$.localDevices": "$.localDevices",
+      "$.messagesForwarded": "$.messagesForwarded",
+      "$.messagesReceived": "$.messagesReceived",
+      "$.responsesForwarded": "$.responsesForwarded",
+      "$.system": "$.system",
+      "$.uptimeSeconds": "$.uptimeSeconds"
+    }
+  },
+  {
+    "condition": "*",
+    "description": "Default condition",
+    "payloadMapping": {
+      "$.system": "${.}"
+    }
+  }
+]

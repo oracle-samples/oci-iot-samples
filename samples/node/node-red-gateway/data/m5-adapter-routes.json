@@ -1,0 +1,20 @@
+[
+  {
+    "condition": "${endpoint(1) == \"m5\" and endpoint(3) == \"telemetry\"}",
+    "description": "M5 environment telemetry",
+    "payloadMapping": {
+      "$.count": "$.count",
+      "$.humidity": "$.humidity",
+      "$.pressure": "$.pressure",
+      "$.qmp_temperature": "$.qmp_temperature",
+      "$.sht_temperature": "$.sht_temperature"
+    }
+  },
+  {
+    "condition": "*",
+    "description": "Default condition",
+    "payloadMapping": {
+      "$.system": "${.}"
+    }
+  }
+]

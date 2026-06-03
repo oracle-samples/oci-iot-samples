@@ -1,0 +1,6 @@
+{
+  "oci-iot-gateway-broker": {
+    "user": "${IOT_GATEWAY_EXTERNAL_KEY}",
+    "password": "${IOT_GATEWAY_SECRET}"
+  }
+}

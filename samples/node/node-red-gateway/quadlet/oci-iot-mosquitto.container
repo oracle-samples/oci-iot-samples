@@ -1,0 +1,19 @@
+[Unit]
+Description=OCI IoT Node-RED gateway sample Mosquitto broker
+After=oci-iot-node-red-gateway-network.service
+Requires=oci-iot-node-red-gateway-network.service
+
+[Container]
+Image=docker.io/library/eclipse-mosquitto:2
+ContainerName=oci-iot-mosquitto
+PublishPort=127.0.0.1:1883:1883
+Volume=%h/.config/oci-iot-node-red-gateway/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro,Z
+Network=oci-iot-node-red-gateway.network
+NetworkAlias=mosquitto
+LogDriver=journald
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

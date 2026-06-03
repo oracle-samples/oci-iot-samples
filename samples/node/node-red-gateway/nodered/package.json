@@ -1,0 +1,6 @@
+{
+  "name": "oci-iot-node-red-gateway-sample",
+  "private": true,
+  "description": "Node-RED gateway sample for OCI IoT.",
+  "dependencies": {}
+}

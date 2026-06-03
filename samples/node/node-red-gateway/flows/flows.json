@@ -1,0 +1,849 @@
+[
+  {
+    "id": "gateway-tab",
+    "type": "tab",
+    "label": "Gateway",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "simulators-tab",
+    "type": "tab",
+    "label": "Simulators",
+    "disabled": false,
+    "info": "Optional local M5 device simulators for m5-01 and m5-02."
+  },
+  {
+    "id": "examples-tab",
+    "type": "tab",
+    "label": "Examples",
+    "disabled": false,
+    "info": "Manual local MQTT examples for telemetry, command responses, counters, and topic mappings."
+  },
+  {
+    "id": "local-mosquitto-broker",
+    "type": "mqtt-broker",
+    "name": "Local Mosquitto",
+    "broker": "${LOCAL_MQTT_HOST}",
+    "port": "${LOCAL_MQTT_PORT}",
+    "clientid": "node-red-local-gateway",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": ""
+  },
+  {
+    "id": "oci-iot-tls",
+    "type": "tls-config",
+    "name": "OCI IoT TLS",
+    "cert": "",
+    "key": "",
+    "ca": "",
+    "certname": "",
+    "keyname": "",
+    "caname": "",
+    "servername": "${IOT_DEVICE_HOST}",
+    "verifyservercert": true,
+    "alpnprotocol": ""
+  },
+  {
+    "id": "oci-iot-gateway-broker",
+    "type": "mqtt-broker",
+    "name": "OCI IoT Gateway MQTT",
+    "broker": "${IOT_DEVICE_HOST}",
+    "port": "8883",
+    "tls": "oci-iot-tls",
+    "clientid": "${IOT_GATEWAY_EXTERNAL_KEY}",
+    "autoConnect": true,
+    "usetls": true,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": false,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "local-telemetry-in",
+    "type": "mqtt in",
+    "z": "gateway-tab",
+    "name": "Local telemetry",
+    "topic": "devices/+/telemetry",
+    "qos": "1",
+    "datatype": "auto-detect",
+    "broker": "local-mosquitto-broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 160,
+    "y": 100,
+    "wires": [
+      [
+        "map-local-telemetry"
+      ]
+    ]
+  },
+  {
+    "id": "map-local-telemetry",
+    "type": "function",
+    "z": "gateway-tab",
+    "name": "Map local telemetry to OCI endpoint",
+    "func": "const allowedDevices = new Set(['m5-01', 'm5-02']);\nconst topicParts = String(msg.topic || '').split('/');\nif (topicParts.length !== 3 || topicParts[0] !== 'devices' || topicParts[2] !== 'telemetry') {\n    return null;\n}\n\nconst deviceId = topicParts[1];\nif (!allowedDevices.has(deviceId)) {\n    return null;\n}\n\nconst counters = flow.get('gatewayCounters') || {};\ncounters.messagesReceived = (counters.messagesReceived || 0) + 1;\n\nlet payload = msg.payload;\nif (Buffer.isBuffer(payload)) {\n    payload = payload.toString('utf8');\n}\nif (typeof payload === 'string') {\n    try {\n        payload = JSON.stringify(JSON.parse(payload));\n    } catch (err) {\n        return null;\n    }\n} else if (payload && typeof payload === 'object') {\n    payload = JSON.stringify(payload);\n}\n\nconst devices = new Set(flow.get('knownLocalDevices') || []);\ndevices.add(deviceId);\nflow.set('knownLocalDevices', Array.from(devices).sort());\ncounters.messagesForwarded = (counters.messagesForwarded || 0) + 1;\nflow.set('gatewayCounters', counters);\n\nmsg.topic = `m5/${deviceId}/telemetry`;\nmsg.payload = payload;\nconst handled = (context.get('handled') || 0) + 1;\ncontext.set('handled', handled);\nnode.status({ fill: 'green', shape: 'dot', text: `${handled} handled` });\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 100,
+    "wires": [
+      [
+        "oci-telemetry-out"
+      ]
+    ]
+  },
+  {
+    "id": "oci-telemetry-out",
+    "type": "mqtt out",
+    "z": "gateway-tab",
+    "name": "Publish telemetry to OCI",
+    "topic": "",
+    "qos": "1",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "oci-iot-gateway-broker",
+    "x": 720,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "oci-command-in",
+    "type": "mqtt in",
+    "z": "gateway-tab",
+    "name": "OCI commands",
+    "topic": "m5/+/cmd/+",
+    "qos": "1",
+    "datatype": "auto-detect",
+    "broker": "oci-iot-gateway-broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 150,
+    "y": 180,
+    "wires": [
+      [
+        "map-oci-command"
+      ]
+    ]
+  },
+  {
+    "id": "map-oci-command",
+    "type": "function",
+    "z": "gateway-tab",
+    "name": "Map OCI command to local topic",
+    "func": "const allowedDevices = new Set(['m5-01', 'm5-02']);\nconst topicParts = String(msg.topic || '').split('/').filter(Boolean);\n\nif (topicParts.length !== 4 || topicParts[0] !== 'm5' || topicParts[2] !== 'cmd' || !topicParts[1] || !topicParts[3]) {\n    return null;\n}\n\nconst deviceId = topicParts[1];\nconst commandKey = topicParts[3];\nif (!allowedDevices.has(deviceId)) {\n    return null;\n}\n\nconst counters = flow.get('gatewayCounters') || {};\ncounters.commandsReceived = (counters.commandsReceived || 0) + 1;\ncounters.commandsForwarded = (counters.commandsForwarded || 0) + 1;\nflow.set('gatewayCounters', counters);\n\nmsg.topic = `devices/${deviceId}/cmd/${commandKey}`;\nconst handled = (context.get('handled') || 0) + 1;\ncontext.set('handled', handled);\nnode.status({ fill: 'green', shape: 'dot', text: `${handled} handled` });\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 180,
+    "wires": [
+      [
+        "local-command-out"
+      ]
+    ]
+  },
+  {
+    "id": "local-command-out",
+    "type": "mqtt out",
+    "z": "gateway-tab",
+    "name": "Publish commands locally",
+    "topic": "",
+    "qos": "1",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "local-mosquitto-broker",
+    "x": 720,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "local-response-in",
+    "type": "mqtt in",
+    "z": "gateway-tab",
+    "name": "Local command responses",
+    "topic": "devices/+/rsp/+",
+    "qos": "1",
+    "datatype": "auto-detect",
+    "broker": "local-mosquitto-broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 170,
+    "y": 260,
+    "wires": [
+      [
+        "map-local-response"
+      ]
+    ]
+  },
+  {
+    "id": "map-local-response",
+    "type": "function",
+    "z": "gateway-tab",
+    "name": "Map local response to OCI topic",
+    "func": "const allowedDevices = new Set(['m5-01', 'm5-02']);\nconst topicParts = String(msg.topic || '').split('/');\nif (topicParts.length !== 4 || topicParts[0] !== 'devices' || topicParts[2] !== 'rsp' || !topicParts[1] || !topicParts[3]) {\n    return null;\n}\n\nconst deviceId = topicParts[1];\nif (!allowedDevices.has(deviceId)) {\n    return null;\n}\n\nconst counters = flow.get('gatewayCounters') || {};\ncounters.responsesForwarded = (counters.responsesForwarded || 0) + 1;\nflow.set('gatewayCounters', counters);\n\nmsg.topic = `m5/${deviceId}/rsp/${topicParts[3]}`;\nconst handled = (context.get('handled') || 0) + 1;\ncontext.set('handled', handled);\nnode.status({ fill: 'green', shape: 'dot', text: `${handled} handled` });\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 260,
+    "wires": [
+      [
+        "oci-response-out"
+      ]
+    ]
+  },
+  {
+    "id": "oci-response-out",
+    "type": "mqtt out",
+    "z": "gateway-tab",
+    "name": "Publish responses to OCI",
+    "topic": "",
+    "qos": "1",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "oci-iot-gateway-broker",
+    "x": 720,
+    "y": 260,
+    "wires": []
+  },
+  {
+    "id": "metrics-timer",
+    "type": "inject",
+    "z": "gateway-tab",
+    "name": "Gateway metrics interval",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "${GATEWAY_METRICS_INTERVAL_SECONDS}",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "5",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 180,
+    "y": 340,
+    "wires": [
+      [
+        "build-gateway-metrics"
+      ]
+    ]
+  },
+  {
+    "id": "build-gateway-metrics",
+    "type": "function",
+    "z": "gateway-tab",
+    "name": "Build gateway metrics",
+    "func": "const counters = flow.get('gatewayCounters') || {};\nconst startedAt = flow.get('gatewayStartedAt') || Date.now();\nflow.set('gatewayStartedAt', startedAt);\n\nconst devices = flow.get('knownLocalDevices') || [];\nconst now = Date.now();\nconst intervalSeconds = Number(env.get('GATEWAY_METRICS_INTERVAL_SECONDS')) || 60;\n\nmsg.payload = {\n    time: now * 1000,\n    messagesReceived: counters.messagesReceived || 0,\n    messagesForwarded: counters.messagesForwarded || 0,\n    commandsReceived: counters.commandsReceived || 0,\n    commandsForwarded: counters.commandsForwarded || 0,\n    responsesForwarded: counters.responsesForwarded || 0,\n    localDevices: devices.length,\n    uptimeSeconds: Math.floor((now - startedAt) / 1000),\n    system: {\n        metricsIntervalSeconds: intervalSeconds\n    }\n};\n\nmsg.topic = 'gateway/metrics';\nconst handled = (context.get('handled') || 0) + 1;\ncontext.set('handled', handled);\nnode.status({ fill: 'green', shape: 'dot', text: `${handled} handled` });\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 340,
+    "wires": [
+      [
+        "oci-metrics-out"
+      ]
+    ]
+  },
+  {
+    "id": "oci-metrics-out",
+    "type": "mqtt out",
+    "z": "gateway-tab",
+    "name": "Publish gateway metrics to OCI",
+    "topic": "",
+    "qos": "1",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "oci-iot-gateway-broker",
+    "x": 730,
+    "y": 340,
+    "wires": []
+  },
+  {
+    "id": "sim-m5-01-telemetry-interval",
+    "type": "inject",
+    "z": "simulators-tab",
+    "name": "m5-01 simulator start",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "1",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 170,
+    "y": 100,
+    "wires": [
+      [
+        "build-m5-01-telemetry"
+      ]
+    ]
+  },
+  {
+    "id": "build-m5-01-telemetry",
+    "type": "function",
+    "z": "simulators-tab",
+    "name": "Build m5-01 telemetry",
+    "func": "const deviceId = 'm5-01';\nconst key = `simulator:${deviceId}`;\nconst defaults = {\n    sht_temperature: 22.1,\n    qmp_temperature: 22.8,\n    humidity: 45,\n    pressure: 1013.2,\n    count: 0,\n    intervalSeconds: 10,\n    disabled: false,\n    running: false,\n    loopToken: null\n};\nconst state = { ...defaults, ...flow.get(key) };\nconst isLoopMessage = Boolean(msg.loopToken);\n\nfunction setStoppedStatus() {\n    node.status({ fill: 'red', shape: 'ring', text: 'stopped' });\n}\n\nif (isLoopMessage && (state.disabled || !state.running)) {\n    setStoppedStatus();\n    return null;\n}\nif (isLoopMessage && msg.loopToken !== state.loopToken) {\n    return null;\n}\nif (!isLoopMessage) {\n    state.disabled = false;\n    state.running = true;\n    state.loopToken = `m5-01-${Date.now()}-${Math.random()}`;\n}\n\nfunction vary(value, delta, min, max) {\n    const next = Number(value) + ((Math.random() * 2) - 1) * delta;\n    return Math.round(Math.min(max, Math.max(min, next)) * 10) / 10;\n}\n\nstate.intervalSeconds = Math.max(1, Number(state.intervalSeconds) || defaults.intervalSeconds);\nstate.sht_temperature = vary(state.sht_temperature, 0.3, 18, 30);\nstate.qmp_temperature = vary(state.qmp_temperature, 0.3, 18, 32);\nstate.humidity = vary(state.humidity, 1.0, 25, 75);\nstate.pressure = Math.round(Math.min(1030, Math.max(990, Number(state.pressure) + ((Math.random() * 2) - 1) * 0.8)) * 10) / 10;\nstate.count = (state.count || 0) + 1;\nflow.set(key, state);\n\nconst telemetry = {\n    topic: `devices/${deviceId}/telemetry`,\n    payload: {\n        sht_temperature: state.sht_temperature,\n        qmp_temperature: state.qmp_temperature,\n        humidity: state.humidity,\n        pressure: state.pressure,\n        count: state.count,\n        time: Date.now() * 1000\n    }\n};\n\nmsg.delay = state.intervalSeconds * 1000;\nmsg.loopToken = state.loopToken;\nmsg.payload = { deviceId, intervalSeconds: state.intervalSeconds };\nconst handled = (context.get('handled') || 0) + 1;\ncontext.set('handled', handled);\nnode.status({ fill: 'green', shape: 'dot', text: `${handled} handled` });\nreturn [telemetry, msg];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 100,
+    "wires": [
+      [
+        "sim-m5-01-telemetry-out"
+      ],
+      [
+        "sim-m5-01-telemetry-delay"
+      ]
+    ]
+  },
+  {
+    "id": "sim-m5-01-telemetry-out",
+    "type": "mqtt out",
+    "z": "simulators-tab",
+    "name": "Publish m5-01 telemetry",
+    "topic": "devices/m5-01/telemetry",
+    "qos": "1",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "local-mosquitto-broker",
+    "x": 730,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "sim-m5-01-telemetry-delay",
+    "type": "delay",
+    "z": "simulators-tab",
+    "name": "m5-01 telemetry cadence",
+    "pauseType": "delayv",
+    "timeout": "10",
+    "timeoutUnits": "seconds",
+    "rate": "1",
+    "nbRateUnits": "1",
+    "rateUnits": "second",
+    "randomFirst": "1",
+    "randomLast": "5",
+    "randomUnits": "seconds",
+    "drop": false,
+    "allowrate": false,
+    "outputs": 1,
+    "x": 730,
+    "y": 140,
+    "wires": [
+      [
+        "build-m5-01-telemetry"
+      ]
+    ]
+  },
+  {
+    "id": "sim-m5-01-command-in",
+    "type": "mqtt in",
+    "z": "simulators-tab",
+    "name": "m5-01 commands",
+    "topic": "devices/m5-01/cmd/+",
+    "qos": "1",
+    "datatype": "auto-detect",
+    "broker": "local-mosquitto-broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 170,
+    "y": 220,
+    "wires": [
+      [
+        "handle-m5-01-command"
+      ]
+    ]
+  },
+  {
+    "id": "handle-m5-01-command",
+    "type": "function",
+    "z": "simulators-tab",
+    "name": "Handle m5-01 command",
+    "func": "const deviceId = 'm5-01';\nconst topicParts = String(msg.topic || '').split('/');\nconst commandKey = topicParts[3] || 'command';\nconst key = `simulator:${deviceId}`;\nconst defaults = {\n    sht_temperature: 22.1,\n    qmp_temperature: 22.8,\n    humidity: 45,\n    pressure: 1013.2,\n    count: 0,\n    intervalSeconds: 10,\n    disabled: false,\n    running: false,\n    loopToken: null\n};\nconst state = { ...defaults, ...flow.get(key) };\n\nlet command = msg.payload;\nif (Buffer.isBuffer(command)) {\n    command = command.toString('utf8');\n}\nif (typeof command === 'string') {\n    try {\n        command = JSON.parse(command);\n    } catch (err) {\n        command = command.trim();\n    }\n}\nconst commandObject = command && typeof command === 'object' && !Array.isArray(command) ? command : {};\n\nconst response = {\n    deviceId,\n    commandKey,\n    time: Date.now() * 1000\n};\n\nif (commandKey === 'identify' || commandObject.identify === true) {\n    response.status = 'identified';\n} else if (commandKey === 'setIntervalSeconds' || Object.hasOwn(commandObject, 'setIntervalSeconds')) {\n    const intervalValue = Object.hasOwn(commandObject, 'setIntervalSeconds') ? commandObject.setIntervalSeconds : command;\n    const intervalSeconds = Math.max(1, Number(intervalValue));\n    if (Number.isFinite(intervalSeconds)) {\n        state.intervalSeconds = intervalSeconds;\n        response.status = 'interval-set';\n        response.setIntervalSeconds = state.intervalSeconds;\n    } else {\n        response.status = 'unsupported';\n    }\n} else if (commandKey === 'shutdown' || commandObject.shutdown === true) {\n    state.disabled = true;\n    state.running = false;\n    state.loopToken = null;\n    response.status = 'shutdown';\n} else {\n    response.status = 'unsupported';\n}\n\nflow.set(key, state);\nmsg.topic = `devices/m5-01/rsp/${commandKey}`;\nmsg.payload = JSON.stringify(response);\nconst handled = (context.get('handled') || 0) + 1;\ncontext.set('handled', handled);\nnode.status({ fill: 'green', shape: 'dot', text: `${handled} handled` });\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 220,
+    "wires": [
+      [
+        "sim-m5-01-response-out"
+      ]
+    ]
+  },
+  {
+    "id": "sim-m5-01-response-out",
+    "type": "mqtt out",
+    "z": "simulators-tab",
+    "name": "Publish m5-01 response",
+    "topic": "",
+    "qos": "1",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "local-mosquitto-broker",
+    "x": 730,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "sim-m5-02-telemetry-interval",
+    "type": "inject",
+    "z": "simulators-tab",
+    "name": "m5-02 simulator start",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "1",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 170,
+    "y": 360,
+    "wires": [
+      [
+        "build-m5-02-telemetry"
+      ]
+    ]
+  },
+  {
+    "id": "build-m5-02-telemetry",
+    "type": "function",
+    "z": "simulators-tab",
+    "name": "Build m5-02 telemetry",
+    "func": "const deviceId = 'm5-02';\nconst key = `simulator:${deviceId}`;\nconst defaults = {\n    sht_temperature: 21.7,\n    qmp_temperature: 22.3,\n    humidity: 48,\n    pressure: 1012.6,\n    count: 0,\n    intervalSeconds: 12,\n    disabled: false,\n    running: false,\n    loopToken: null\n};\nconst state = { ...defaults, ...flow.get(key) };\nconst isLoopMessage = Boolean(msg.loopToken);\n\nfunction setStoppedStatus() {\n    node.status({ fill: 'red', shape: 'ring', text: 'stopped' });\n}\n\nif (isLoopMessage && (state.disabled || !state.running)) {\n    setStoppedStatus();\n    return null;\n}\nif (isLoopMessage && msg.loopToken !== state.loopToken) {\n    return null;\n}\nif (!isLoopMessage) {\n    state.disabled = false;\n    state.running = true;\n    state.loopToken = `m5-02-${Date.now()}-${Math.random()}`;\n}\n\nfunction vary(value, delta, min, max) {\n    const next = Number(value) + ((Math.random() * 2) - 1) * delta;\n    return Math.round(Math.min(max, Math.max(min, next)) * 10) / 10;\n}\n\nstate.intervalSeconds = Math.max(1, Number(state.intervalSeconds) || defaults.intervalSeconds);\nstate.sht_temperature = vary(state.sht_temperature, 0.3, 18, 30);\nstate.qmp_temperature = vary(state.qmp_temperature, 0.3, 18, 32);\nstate.humidity = vary(state.humidity, 1.0, 25, 75);\nstate.pressure = Math.round(Math.min(1030, Math.max(990, Number(state.pressure) + ((Math.random() * 2) - 1) * 0.8)) * 10) / 10;\nstate.count = (state.count || 0) + 1;\nflow.set(key, state);\n\nconst telemetry = {\n    topic: `devices/${deviceId}/telemetry`,\n    payload: {\n        sht_temperature: state.sht_temperature,\n        qmp_temperature: state.qmp_temperature,\n        humidity: state.humidity,\n        pressure: state.pressure,\n        count: state.count,\n        time: Date.now() * 1000\n    }\n};\n\nmsg.delay = state.intervalSeconds * 1000;\nmsg.loopToken = state.loopToken;\nmsg.payload = { deviceId, intervalSeconds: state.intervalSeconds };\nconst handled = (context.get('handled') || 0) + 1;\ncontext.set('handled', handled);\nnode.status({ fill: 'green', shape: 'dot', text: `${handled} handled` });\nreturn [telemetry, msg];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 360,
+    "wires": [
+      [
+        "sim-m5-02-telemetry-out"
+      ],
+      [
+        "sim-m5-02-telemetry-delay"
+      ]
+    ]
+  },
+  {
+    "id": "sim-m5-02-telemetry-out",
+    "type": "mqtt out",
+    "z": "simulators-tab",
+    "name": "Publish m5-02 telemetry",
+    "topic": "devices/m5-02/telemetry",
+    "qos": "1",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "local-mosquitto-broker",
+    "x": 730,
+    "y": 340,
+    "wires": []
+  },
+  {
+    "id": "sim-m5-02-telemetry-delay",
+    "type": "delay",
+    "z": "simulators-tab",
+    "name": "m5-02 telemetry cadence",
+    "pauseType": "delayv",
+    "timeout": "12",
+    "timeoutUnits": "seconds",
+    "rate": "1",
+    "nbRateUnits": "1",
+    "rateUnits": "second",
+    "randomFirst": "1",
+    "randomLast": "5",
+    "randomUnits": "seconds",
+    "drop": false,
+    "allowrate": false,
+    "outputs": 1,
+    "x": 730,
+    "y": 400,
+    "wires": [
+      [
+        "build-m5-02-telemetry"
+      ]
+    ]
+  },
+  {
+    "id": "sim-m5-02-command-in",
+    "type": "mqtt in",
+    "z": "simulators-tab",
+    "name": "m5-02 commands",
+    "topic": "devices/m5-02/cmd/+",
+    "qos": "1",
+    "datatype": "auto-detect",
+    "broker": "local-mosquitto-broker",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 170,
+    "y": 500,
+    "wires": [
+      [
+        "handle-m5-02-command"
+      ]
+    ]
+  },
+  {
+    "id": "handle-m5-02-command",
+    "type": "function",
+    "z": "simulators-tab",
+    "name": "Handle m5-02 command",
+    "func": "const deviceId = 'm5-02';\nconst topicParts = String(msg.topic || '').split('/');\nconst commandKey = topicParts[3] || 'command';\nconst key = `simulator:${deviceId}`;\nconst defaults = {\n    sht_temperature: 21.7,\n    qmp_temperature: 22.3,\n    humidity: 48,\n    pressure: 1012.6,\n    count: 0,\n    intervalSeconds: 12,\n    disabled: false,\n    running: false,\n    loopToken: null\n};\nconst state = { ...defaults, ...flow.get(key) };\n\nlet command = msg.payload;\nif (Buffer.isBuffer(command)) {\n    command = command.toString('utf8');\n}\nif (typeof command === 'string') {\n    try {\n        command = JSON.parse(command);\n    } catch (err) {\n        command = command.trim();\n    }\n}\nconst commandObject = command && typeof command === 'object' && !Array.isArray(command) ? command : {};\n\nconst response = {\n    deviceId,\n    commandKey,\n    time: Date.now() * 1000\n};\n\nif (commandKey === 'identify' || commandObject.identify === true) {\n    response.status = 'identified';\n} else if (commandKey === 'setIntervalSeconds' || Object.hasOwn(commandObject, 'setIntervalSeconds')) {\n    const intervalValue = Object.hasOwn(commandObject, 'setIntervalSeconds') ? commandObject.setIntervalSeconds : command;\n    const intervalSeconds = Math.max(1, Number(intervalValue));\n    if (Number.isFinite(intervalSeconds)) {\n        state.intervalSeconds = intervalSeconds;\n        response.status = 'interval-set';\n        response.setIntervalSeconds = state.intervalSeconds;\n    } else {\n        response.status = 'unsupported';\n    }\n} else if (commandKey === 'shutdown' || commandObject.shutdown === true) {\n    state.disabled = true;\n    state.running = false;\n    state.loopToken = null;\n    response.status = 'shutdown';\n} else {\n    response.status = 'unsupported';\n}\n\nflow.set(key, state);\nmsg.topic = `devices/m5-02/rsp/${commandKey}`;\nmsg.payload = JSON.stringify(response);\nconst handled = (context.get('handled') || 0) + 1;\ncontext.set('handled', handled);\nnode.status({ fill: 'green', shape: 'dot', text: `${handled} handled` });\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 500,
+    "wires": [
+      [
+        "sim-m5-02-response-out"
+      ]
+    ]
+  },
+  {
+    "id": "sim-m5-02-response-out",
+    "type": "mqtt out",
+    "z": "simulators-tab",
+    "name": "Publish m5-02 response",
+    "topic": "",
+    "qos": "1",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "local-mosquitto-broker",
+    "x": 730,
+    "y": 500,
+    "wires": []
+  },
+  {
+    "id": "example-m5-01-telemetry",
+    "type": "inject",
+    "z": "examples-tab",
+    "name": "m5-01 telemetry example",
+    "props": [
+      {
+        "p": "topic",
+        "vt": "str"
+      },
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": "0.1",
+    "topic": "devices/m5-01/telemetry",
+    "payload": "{\"sht_temperature\":22.4,\"qmp_temperature\":22.9,\"humidity\":46.2,\"pressure\":1013.1,\"count\":1}",
+    "payloadType": "json",
+    "x": 180,
+    "y": 100,
+    "wires": [
+      [
+        "examples-local-mqtt-out",
+        "examples-debug"
+      ]
+    ]
+  },
+  {
+    "id": "example-m5-02-telemetry",
+    "type": "inject",
+    "z": "examples-tab",
+    "name": "m5-02 telemetry example",
+    "props": [
+      {
+        "p": "topic",
+        "vt": "str"
+      },
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": "0.1",
+    "topic": "devices/m5-02/telemetry",
+    "payload": "{\"sht_temperature\":21.8,\"qmp_temperature\":22.2,\"humidity\":47.8,\"pressure\":1012.4,\"count\":1}",
+    "payloadType": "json",
+    "x": 180,
+    "y": 170,
+    "wires": [
+      [
+        "examples-local-mqtt-out",
+        "examples-debug"
+      ]
+    ]
+  },
+  {
+    "id": "example-command-response",
+    "type": "inject",
+    "z": "examples-tab",
+    "name": "m5-01 command response example",
+    "props": [
+      {
+        "p": "topic",
+        "vt": "str"
+      },
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": "0.1",
+    "topic": "devices/m5-01/rsp/identify",
+    "payload": "{\"deviceId\":\"m5-01\",\"commandKey\":\"identify\",\"status\":\"identified\",\"time\":0}",
+    "payloadType": "json",
+    "x": 180,
+    "y": 240,
+    "wires": [
+      [
+        "examples-local-mqtt-out",
+        "examples-debug"
+      ]
+    ]
+  },
+  {
+    "id": "example-reset-counters",
+    "type": "inject",
+    "z": "examples-tab",
+    "name": "reset counters and clear shutdown example",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": "0.1",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 190,
+    "y": 360,
+    "wires": [
+      [
+        "example-reset-counters-function"
+      ]
+    ]
+  },
+  {
+    "id": "example-reset-counters-function",
+    "type": "function",
+    "z": "examples-tab",
+    "name": "Reset counters and clear shutdown flags",
+    "func": "flow.set('gatewayCounters', {});\nflow.set('knownLocalDevices', []);\nfor (const deviceId of ['m5-01', 'm5-02']) {\n    const key = `simulator:${deviceId}`;\n    const state = flow.get(key) || {};\n    state.count = 0;\n    state.disabled = false;\n    flow.set(key, state);\n}\nmsg.payload = {\n    status: 'reset',\n    detail: 'counters reset and shutdown flags cleared; use each simulator start inject to start a stopped loop',\n    devices: ['m5-01', 'm5-02']\n};\nconst handled = (context.get('handled') || 0) + 1;\ncontext.set('handled', handled);\nnode.status({ fill: 'green', shape: 'dot', text: `${handled} handled` });\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 540,
+    "y": 360,
+    "wires": [
+      [
+        "examples-debug"
+      ]
+    ]
+  },
+  {
+    "id": "example-topic-mappings",
+    "type": "inject",
+    "z": "examples-tab",
+    "name": "show topic mappings",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": "0.1",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 190,
+    "y": 460,
+    "wires": [
+      [
+        "example-build-topic-mappings"
+      ]
+    ]
+  },
+  {
+    "id": "example-build-topic-mappings",
+    "type": "function",
+    "z": "examples-tab",
+    "name": "Build topic mapping examples",
+    "func": "msg.payload = {\n    telemetry: {\n        local: 'devices/<device-id>/telemetry',\n        oci: 'm5/<device-id>/telemetry'\n    },\n    command: {\n        oci: 'm5/<device-id>/cmd/<command-key>',\n        local: 'devices/<device-id>/cmd/<command-key>'\n    },\n    response: {\n        local: 'devices/<device-id>/rsp/<command-key>',\n        oci: 'm5/<device-id>/rsp/<command-key>'\n    },\n    metrics: {\n        oci: 'gateway/metrics'\n    }\n};\nconst handled = (context.get('handled') || 0) + 1;\ncontext.set('handled', handled);\nnode.status({ fill: 'green', shape: 'dot', text: `${handled} handled` });\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 540,
+    "y": 460,
+    "wires": [
+      [
+        "examples-debug"
+      ]
+    ]
+  },
+  {
+    "id": "examples-local-mqtt-out",
+    "type": "mqtt out",
+    "z": "examples-tab",
+    "name": "Publish example locally",
+    "topic": "",
+    "qos": "1",
+    "retain": "",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "local-mosquitto-broker",
+    "x": 510,
+    "y": 170,
+    "wires": []
+  },
+  {
+    "id": "examples-debug",
+    "type": "debug",
+    "z": "examples-tab",
+    "name": "Example debug",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 850,
+    "y": 360,
+    "wires": []
+  }
+]

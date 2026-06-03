@@ -1,0 +1,22 @@
+{
+  "envelopeMapping": {
+    "timeObserved": "$.time",
+    "target": "${if endpoint(1) == \"m5\" then endpoint(2) else null end}",
+    "contentRoot": "$"
+  },
+  "referenceEndpoint": "gateway/metrics",
+  "referencePayload": {
+    "data": {
+      "commandsForwarded": 0,
+      "commandsReceived": 0,
+      "localDevices": 0,
+      "messagesForwarded": 0,
+      "messagesReceived": 0,
+      "responsesForwarded": 0,
+      "system": {},
+      "time": 0,
+      "uptimeSeconds": 0
+    },
+    "dataFormat": "JSON"
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "@context": [
+    "dtmi:dtdl:context;3",
+    "dtmi:dtdl:extension:historization;1"
+  ],
+  "@id": "dtmi:com:oracle:iot:samples:nodered:gateway;1",
+  "@type": "Interface",
+  "displayName": "Node-RED Gateway",
+  "contents": [
+    {
+      "@type": [
+        "Telemetry",
+        "Historized"
+      ],
+      "name": "messagesReceived",
+      "displayName": "Messages Received",
+      "schema": "integer"
+    },
+    {
+      "@type": [
+        "Telemetry",
+        "Historized"
+      ],
+      "name": "messagesForwarded",
+      "displayName": "Messages Forwarded",
+      "schema": "integer"
+    },
+    {
+      "@type": [
+        "Telemetry",
+        "Historized"
+      ],
+      "name": "commandsReceived",
+      "displayName": "Commands Received",
+      "schema": "integer"
+    },
+    {
+      "@type": [
+        "Telemetry",
+        "Historized"
+      ],
+      "name": "commandsForwarded",
+      "displayName": "Commands Forwarded",
+      "schema": "integer"
+    },
+    {
+      "@type": [
+        "Telemetry",
+        "Historized"
+      ],
+      "name": "responsesForwarded",
+      "displayName": "Responses Forwarded",
+      "schema": "integer"
+    },
+    {
+      "@type": [
+        "Telemetry",
+        "Historized"
+      ],
+      "name": "localDevices",
+      "displayName": "Local Devices",
+      "schema": "integer"
+    },
+    {
+      "@type": [
+        "Telemetry",
+        "Historized"
+      ],
+      "name": "uptimeSeconds",
+      "displayName": "Uptime Seconds",
+      "schema": "integer"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "system",
+      "displayName": "System Message",
+      "schema": {
+        "@type": "Object"
+      }
+    }
+  ]
+}

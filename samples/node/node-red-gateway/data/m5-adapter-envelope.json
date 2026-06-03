@@ -1,0 +1,18 @@
+{
+  "envelopeMapping": {
+    "timeObserved": "$.time"
+  },
+  "referenceEndpoint": "m5/m5-01/telemetry",
+  "referencePayload": {
+    "data": {
+      "count": 0,
+      "humidity": 0.0,
+      "pressure": 0.0,
+      "qmp_temperature": 0.0,
+      "sht_temperature": 0.0,
+      "system": {},
+      "time": 0
+    },
+    "dataFormat": "JSON"
+  }
+}

@@ -57,6 +57,7 @@ as well as the messages received.
 | Publish telemetry (HTTPS - REST API)                 | [Sample](./samples/script/publish-https/) | [Sample](./samples/python/publish-https/)  |              |
 | Publish telemetry (MQTTS - Secure MQTT)              |                       | [Sample](./samples/python/publish-mqtt/)  | [Sample](./samples/C/M5Stack/) |
 | Publish telemetry (WSS - Secure MQTT over WebSocket) |                       | [Sample](./samples/python/publish-websockets/)  |              |
+| Node-RED gateway                                     | [Sample](./samples/node/node-red-gateway/) |              |              |
 | Sending observed time in device payload              | [Sample](./samples/script/time-observed/) |              | [Sample](./samples/C/M5Stack/) |
 | Raw command-response scenario                        |                       | [Sample](./samples/python/command-response/)  | [Sample](./samples/C/M5Stack/) |
 | Direct database connection — query telemetry         | [Sample](./samples/script/query-db/) | [Sample](./samples/python/query-db/)  |              |
@@ -68,6 +69,10 @@ as well as the messages received.
   microcontroller device to the OCI IoT Platform over secure MQTT,
   publish environmental telemetry, handle command-response messages,
   and perform OTA firmware updates triggered through the IoT Platform.
+- The [`Node-RED gateway`](./samples/node/node-red-gateway/) sample shows how
+  to run a local Node-RED gateway and Mosquitto broker, link a `GATEWAY`
+  digital twin to `INDIRECT` devices, forward telemetry and commands between
+  local MQTT devices and OCI IoT, and publish gateway metrics.
 - The [`File Upload Agent`](./samples/python/file-agent/) Python sample shows how
   a device can request an upload over MQTT, have a backend agent consume IoT
   Platform database queue messages, create short-lived Object Storage upload

@@ -1,0 +1,26 @@
+[Unit]
+Description=OCI IoT Node-RED gateway sample runtime
+After=oci-iot-mosquitto.service
+Requires=oci-iot-mosquitto.service
+
+[Container]
+Image=docker.io/nodered/node-red:latest
+ContainerName=oci-iot-node-red
+PublishPort=127.0.0.1:1880:1880
+EnvironmentFile=%h/.config/oci-iot-node-red-gateway/oci-iot-node-red-gateway.env
+Entrypoint=/bin/bash
+Exec=/opt/oci-iot-node-red/seed-sample.sh
+Volume=oci-iot-node-red-data.volume:/data
+Volume=%h/.config/oci-iot-node-red-gateway/nodered/seed-sample.sh:/opt/oci-iot-node-red/seed-sample.sh:ro,Z
+Volume=%h/.config/oci-iot-node-red-gateway/flows/flows.json:/opt/oci-iot-node-red/flows.json:ro,Z
+Volume=%h/.config/oci-iot-node-red-gateway/flows/flows_cred.template.json:/opt/oci-iot-node-red/flows_cred.json:ro,Z
+Volume=%h/.config/oci-iot-node-red-gateway/nodered/settings.js:/data/settings.js:ro,Z
+Volume=%h/.config/oci-iot-node-red-gateway/nodered/package.json:/data/package.json:ro,Z
+Network=oci-iot-node-red-gateway.network
+LogDriver=journald
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

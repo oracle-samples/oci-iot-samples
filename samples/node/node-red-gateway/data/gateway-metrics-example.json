@@ -1,0 +1,14 @@
+{
+  "commandsForwarded": 2,
+  "commandsReceived": 2,
+  "localDevices": 1,
+  "messagesForwarded": 126,
+  "messagesReceived": 126,
+  "responsesForwarded": 2,
+  "system": {
+    "host": "node-red-gateway",
+    "status": "online"
+  },
+  "time": 1717593600000,
+  "uptimeSeconds": 3600
+}

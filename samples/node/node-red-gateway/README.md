@@ -276,8 +276,11 @@ docker compose up
 Start with Podman Compose:
 
 ```sh
-podman compose up
+podman compose -f podman-compose.yaml up
 ```
+
+The Podman Compose file includes SELinux relabeling for bind mounts and `:U` on
+the Node-RED data volume so the container user can seed `/data`.
 
 Start with Podman Quadlet by following [quadlet/README.md](quadlet/README.md).
 The Quadlet files use the same environment keys.
@@ -467,6 +470,34 @@ Wrong gateway credentials:
 - Confirm `flows/flows_cred.template.json` still contains the
   `${IOT_GATEWAY_EXTERNAL_KEY}` and `${IOT_GATEWAY_SECRET}` placeholders if you
   are reseeding the Node-RED data volume.
+
+Podman Compose reports permission denied while seeding `/data`:
+
+- Use `podman compose -f podman-compose.yaml up`.
+- If the volume was created by an earlier run, remove the old Podman Compose
+  volume and start again:
+
+  ```sh
+  podman compose -f podman-compose.yaml down
+  podman volume rm oci-iot-node-red-compose-data
+  podman compose -f podman-compose.yaml up
+  ```
+
+Podman Compose reports local MQTT connection failures to `mqtt://mosquitto:1883`:
+
+- Recreate the Podman Compose network so the explicit `mosquitto` alias is
+  applied:
+
+  ```sh
+  podman compose -f podman-compose.yaml down
+  podman compose -f podman-compose.yaml up
+  ```
+
+- Verify the alias from the Node-RED container:
+
+  ```sh
+  podman compose -f podman-compose.yaml exec node-red getent hosts mosquitto
+  ```
 
 Indirect device telemetry not updating:
 

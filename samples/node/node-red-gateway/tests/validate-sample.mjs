@@ -9,6 +9,7 @@ const sampleDir = dirname(testDir);
 
 const requiredFiles = [
   'docker-compose.yaml',
+  'podman-compose.yaml',
   'README.md',
   '.env.example',
   'data/gateway-model.json',
@@ -491,6 +492,28 @@ for (const volume of [
 }
 assertMatches(dockerCompose, /^volumes:\n {2}node-red-data:\s*$/m, 'docker-compose.yaml', 'must define node-red-data volume');
 assertMatches(composeNodeRed, /networks:\n\s+- gateway/m, 'docker-compose.yaml node-red service', 'must use gateway network');
+
+const podmanCompose = await readText('podman-compose.yaml');
+assertContains(podmanCompose, 'services:', 'podman-compose.yaml');
+assertContains(podmanCompose, 'image: eclipse-mosquitto:2', 'podman-compose.yaml');
+assertContains(podmanCompose, './mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro,Z', 'podman-compose.yaml');
+assertContains(podmanCompose, 'aliases:', 'podman-compose.yaml');
+assertContains(podmanCompose, '- mosquitto', 'podman-compose.yaml');
+assertContains(podmanCompose, 'image: nodered/node-red:latest', 'podman-compose.yaml');
+assertContains(podmanCompose, 'entrypoint: /bin/bash', 'podman-compose.yaml');
+assertContains(podmanCompose, 'command: /opt/oci-iot-node-red/seed-sample.sh', 'podman-compose.yaml');
+assertContains(podmanCompose, 'node-red-data:/data:U', 'podman-compose.yaml');
+assertContains(podmanCompose, 'name: oci-iot-node-red-compose-data', 'podman-compose.yaml');
+for (const volume of [
+  './nodered/seed-sample.sh:/opt/oci-iot-node-red/seed-sample.sh:ro,Z',
+  './flows/flows.json:/opt/oci-iot-node-red/flows.json:ro,Z',
+  './flows/flows_cred.template.json:/opt/oci-iot-node-red/flows_cred.json:ro,Z',
+  './nodered/settings.js:/data/settings.js:ro,Z',
+  './nodered/package.json:/data/package.json:ro,Z',
+]) {
+  assertContains(podmanCompose, volume, 'podman-compose.yaml');
+}
+assertMatches(podmanCompose, /^volumes:\n {2}node-red-data:\s*$/m, 'podman-compose.yaml', 'must define node-red-data volume');
 
 const mosquittoConfig = await readText('mosquitto/mosquitto.conf');
 assertContains(mosquittoConfig, 'listener 1883 0.0.0.0', 'mosquitto.conf');
@@ -980,6 +1003,9 @@ for (const expected of [
   'Certificate-based gateway authentication',
   'cp .env.example .env',
   'docker compose up',
+  'podman compose -f podman-compose.yaml up',
+  'podman volume rm oci-iot-node-red-compose-data',
+  'podman compose -f podman-compose.yaml exec node-red getent hosts mosquitto',
   'http://127.0.0.1:1880',
   'localhost by default',
   'Mosquitto port binding',
@@ -1001,7 +1027,7 @@ for (const expected of [
   '--gateways',
   'invoke-raw-json-command',
   'docker compose up',
-  'podman compose up',
+  'podman compose -f podman-compose.yaml up',
   'Quadlet',
   'devices/m5-01/telemetry',
   'm5/m5-01/cmd',

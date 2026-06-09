@@ -1,0 +1,38 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro,Z
+    networks:
+      gateway:
+        aliases:
+          - mosquitto
+
+  node-red:
+    image: nodered/node-red:latest
+    entrypoint: /bin/bash
+    command: /opt/oci-iot-node-red/seed-sample.sh
+    ports:
+      - "127.0.0.1:1880:1880"
+    depends_on:
+      - mosquitto
+    env_file:
+      - .env
+    volumes:
+      - node-red-data:/data:U
+      - ./nodered/seed-sample.sh:/opt/oci-iot-node-red/seed-sample.sh:ro,Z
+      - ./flows/flows.json:/opt/oci-iot-node-red/flows.json:ro,Z
+      - ./flows/flows_cred.template.json:/opt/oci-iot-node-red/flows_cred.json:ro,Z
+      - ./nodered/settings.js:/data/settings.js:ro,Z
+      - ./nodered/package.json:/data/package.json:ro,Z
+    networks:
+      - gateway
+
+networks:
+  gateway:
+
+volumes:
+  node-red-data:
+    name: oci-iot-node-red-compose-data

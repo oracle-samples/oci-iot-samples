@@ -4,7 +4,7 @@
 # Maven generated files
 target/
 
-# IntelliJ IDEA specific files 
+# IntelliJ IDEA specific files
 .idea
 *.iml
 *.ipr
@@ -16,7 +16,7 @@ target/
 .factorypath
 .settings
 
-# Visual Studio Code specific files 
+# Visual Studio Code specific files
 .vscode
 
 # MacOS generated files

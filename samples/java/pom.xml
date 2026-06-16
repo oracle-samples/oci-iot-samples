@@ -21,12 +21,12 @@
 
     <properties>
         <revision>dev</revision>
-        
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <maven.compiler.release>25</maven.compiler.release>
-        
+
         <version.lib.oci-sdk>3.89.1</version.lib.oci-sdk>
         <version.lib.oracle-jdbc>23.26.2.0.0</version.lib.oracle-jdbc>
         <version.lib.slf4j>2.0.18</version.lib.slf4j>

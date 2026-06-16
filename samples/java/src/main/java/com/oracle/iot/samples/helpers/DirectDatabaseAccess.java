@@ -37,24 +37,24 @@ public class DirectDatabaseAccess {
     private static final String KEY_PAIR_ALGORITHM = "RSA";
     private static final int KEY_SIZE = 2048;
     private static final KeyPair KEY_PAIR;
-    
+
     static {
         try {
             var keyPairGenerator = KeyPairGenerator.getInstance(KEY_PAIR_ALGORITHM);
-            
+
             keyPairGenerator.initialize(KEY_SIZE);
-            
+
             KEY_PAIR = keyPairGenerator.generateKeyPair();
         } catch (NoSuchAlgorithmException e) {
             throw new Error(e.getMessage(), e);
         }
     }
-    
+
     private final AbstractAuthenticationDetailsProvider authenticationDetailsProvider;
-    
+
     private final DataSource dataSource;
     private final String domainShortId;
-    
+
     /**
      * Creates a direct database access helper for the specified IoT Domain.
      *
@@ -66,25 +66,25 @@ public class DirectDatabaseAccess {
             AbstractAuthenticationDetailsProvider authenticationDetailsProvider,
             String iotDomainOcid) throws SQLException {
         this.authenticationDetailsProvider = authenticationDetailsProvider;
-        
+
         try (var iotClient = IotClient.builder().build(authenticationDetailsProvider)) {
             var iotDomain = iotClient
                     .getIotDomain(GetIotDomainRequest.builder()
                         .iotDomainId(iotDomainOcid)
                         .build())
                     .getIotDomain();
-            
+
             var iotDomainGroup = iotClient
                     .getIotDomainGroup(GetIotDomainGroupRequest.builder()
                             .iotDomainGroupId(iotDomain.getIotDomainGroupId())
                             .build())
                     .getIotDomainGroup();
-            
+
             this.domainShortId = iotDomain.getDeviceHost().split("\\.")[0].toUpperCase();
             this.dataSource = createDataSource(iotDomainGroup);
         }
     }
-    
+
     /**
      * Returns the configured Oracle JDBC data source.
      *
@@ -105,11 +105,11 @@ public class DirectDatabaseAccess {
 
     private DataSource createDataSource(IotDomainGroup iotDomainGroup) throws SQLException {
         var dataSource = new OracleDataSource();
-        
+
         dataSource.setURL("jdbc:oracle:thin:@" + iotDomainGroup.getDbConnectionString());
         dataSource.setTokenSupplier(
                 AccessToken.createJsonWebTokenCache(() -> createDatabaseAccessToken(iotDomainGroup.getDbTokenScope())));
-        
+
         return dataSource;
     }
 

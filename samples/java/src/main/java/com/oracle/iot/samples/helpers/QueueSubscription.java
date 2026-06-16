@@ -27,16 +27,16 @@ import oracle.jdbc.driver.OracleConnection;
 public class QueueSubscription {
     private static final Duration DEQUEUE_WAIT_TIME = Duration.ofSeconds(5);
     private static final int DEQUEUE_BUFFER_SIZE = 10;
-    
+
     private static final int ORA_DEQUEUE_TIMEOUT = 25228;
     private static final int ORA_SUBSCRIBER_EXISTS = 24034;
-    
+
     private final String schema;
     private final String queue;
     private final String subscriber;
-    
+
     private final AtomicReference<Thread> streamingThread = new AtomicReference<>();
-    
+
     /**
      * Creates a queue subscription helper.
      *
@@ -61,7 +61,7 @@ public class QueueSubscription {
     public boolean registerSubscriber(Connection connection, String rule) throws SQLException {
         try {
             ((OracleConnection) connection).addDurableAQSubscriber(fullyQualifiedQueueName(), subscriber, rule);
-            
+
             return true;
         } catch (SQLException ex) {
             if (ex.getErrorCode() == ORA_SUBSCRIBER_EXISTS) {
@@ -71,7 +71,7 @@ public class QueueSubscription {
             }
         }
     }
-    
+
     /**
      * Removes the subscriber from the underlying queue.
      *
@@ -81,7 +81,7 @@ public class QueueSubscription {
     public void unregisterSubscriber(Connection connection) throws SQLException {
         ((OracleConnection) connection).removeDurableAQSubscriber(fullyQualifiedQueueName(), subscriber);
     }
-    
+
     /**
      * Starts streaming messages in the background.
      *
@@ -94,20 +94,20 @@ public class QueueSubscription {
         var newStreamingThread = Thread.ofVirtual()
                 .name("queue-streaming-thread (%s.%s)".formatted(schema, queue))
                 .unstarted(() -> streamQueue((OracleConnection) connection, queueType, onMessage));
-        
+
         if (!streamingThread.compareAndSet(null, newStreamingThread)) {
             throw new IllegalStateException("Streaming has already started");
         }
-        
+
         newStreamingThread.start();
     }
-    
+
     /**
      * Stops streaming if it was started and waits for the streaming thread to finish.
      */
     public void stopStreaming() {
         var startedStreamingThread = streamingThread.getAndSet(null);
-        
+
         if (startedStreamingThread != null) {
             while (startedStreamingThread.isAlive()) {
                 try {
@@ -116,7 +116,7 @@ public class QueueSubscription {
             }
         }
     }
-    
+
     private void streamQueue(OracleConnection connection, String queueType, Consumer<AQMessage> onMessage) {
         while (Thread.currentThread() == streamingThread.get()) {
             try {
@@ -125,10 +125,10 @@ public class QueueSubscription {
                         dequeueOptions(),
                         queueType,
                         DEQUEUE_BUFFER_SIZE);
-                
+
                 if (dequeued != null) {
                     Stream.of(dequeued).forEach(onMessage);
-                    
+
                     connection.commit();
                 }
             } catch (SQLException ex) {
@@ -139,18 +139,18 @@ public class QueueSubscription {
             }
         }
     }
-    
+
     private AQDequeueOptions dequeueOptions() throws SQLException {
         var dequeueOptions = new AQDequeueOptions();
-        
+
         dequeueOptions.setVisibility(AQDequeueOptions.VisibilityOption.ON_COMMIT);
         dequeueOptions.setConsumerName(subscriber);
         dequeueOptions.setWait((int) DEQUEUE_WAIT_TIME.toSeconds());
         dequeueOptions.setDequeueMode(AQDequeueOptions.DequeueMode.REMOVE);
-        
+
         return dequeueOptions;
     }
-    
+
     private String fullyQualifiedQueueName() {
         return schema + "." + queue;
     }

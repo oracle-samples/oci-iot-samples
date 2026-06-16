@@ -29,19 +29,19 @@ public class SampleDataAccess {
     public static void main(String[] args) throws SQLException, IOException {
         if (args.length != 1) {
             System.err.println("Expected arguments: <iot-domain-ocid>");
-            
+
             return;
         }
-        
+
         // The first command-line argument is the IoT Domain OCID.
         var iotDomainOcid = args[0];
         // This sample uses instance principal authentication by default. With this authentication flow, run the sample
         // in OCI and configure the required dynamic group, policies, IoT Domain Group, and IoT Domain.
         // Replace this provider if your deployment uses another authentication flow.
         var authenticationDetailsProvider = InstancePrincipalsAuthenticationDetailsProvider.builder().build();
-        
+
         var dbAccess = new DirectDatabaseAccess(authenticationDetailsProvider, iotDomainOcid);
-        
+
         try (var connection = dbAccess.getDataSource().getConnection()) {
             try (var statement = connection
                     .prepareStatement("SELECT COUNT(*) FROM %s__IOT.RAW_DATA".formatted(dbAccess.getDomainShortId()))) {

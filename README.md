@@ -49,19 +49,19 @@ as well as the messages received.
 
 ## How To
 
-| Description                                          | Command Line          | Python       | C            |
-|------------------------------------------------------|:---------------------:|:------------:|:------------:|
-| IoT from scratch (Setup IoT environment from command line) | [Sample](./samples/script/iot-from-scratch/) |              |              |
-| IoT from scratch (Setup IoT environment with Terraform   ) | [Terraform Sample](./samples/terraform/iot-from-scratch/) |              |              |
-| Manage Digital Twins (Create, query, delete). The Python sample demonstrates the use of the OCI Python SDK and the IoT Platform Data API           | [Sample](./samples/script/manage-dt/) | [Sample](./samples/python/manage-dt/) |              |
-| Publish telemetry (HTTPS - REST API)                 | [Sample](./samples/script/publish-https/) | [Sample](./samples/python/publish-https/)  |              |
-| Publish telemetry (MQTTS - Secure MQTT)              |                       | [Sample](./samples/python/publish-mqtt/)  | [Sample](./samples/C/M5Stack/) |
-| Publish telemetry (WSS - Secure MQTT over WebSocket) |                       | [Sample](./samples/python/publish-websockets/)  |              |
-| Node-RED gateway                                     | [Sample](./samples/node/node-red-gateway/) |              |              |
-| Sending observed time in device payload              | [Sample](./samples/script/time-observed/) |              | [Sample](./samples/C/M5Stack/) |
-| Raw command-response scenario                        |                       | [Sample](./samples/python/command-response/)  | [Sample](./samples/C/M5Stack/) |
-| Direct database connection — query telemetry         | [Sample](./samples/script/query-db/) | [Sample](./samples/python/query-db/)  |              |
-| Streaming IoT Platform data (Database queues)        |                       | [Sample](./samples/python/queues/)  |              |
+| Description                                          | Command Line          | Python       | C            | Java         |
+|------------------------------------------------------|:---------------------:|:------------:|:------------:|:------------:|
+| IoT from scratch (Setup IoT environment from command line) | [Sample](./samples/script/iot-from-scratch/) |              |              |              |
+| IoT from scratch (Setup IoT environment with Terraform   ) | [Terraform Sample](./samples/terraform/iot-from-scratch/) |              |              |              |
+| Manage Digital Twins (Create, query, delete). The Python sample demonstrates the use of the OCI Python SDK and the IoT Platform Data API           | [Sample](./samples/script/manage-dt/) | [Sample](./samples/python/manage-dt/) |              |              |
+| Publish telemetry (HTTPS - REST API)                 | [Sample](./samples/script/publish-https/) | [Sample](./samples/python/publish-https/)  |              |              |
+| Publish telemetry (MQTTS - Secure MQTT)              |                       | [Sample](./samples/python/publish-mqtt/)  | [Sample](./samples/C/M5Stack/) |              |
+| Publish telemetry (WSS - Secure MQTT over WebSocket) |                       | [Sample](./samples/python/publish-websockets/)  |              |              |
+| Node-RED gateway                                     | [Sample](./samples/node/node-red-gateway/) |              |              |              |
+| Sending observed time in device payload              | [Sample](./samples/script/time-observed/) |              | [Sample](./samples/C/M5Stack/) |              |
+| Raw command-response scenario                        |                       | [Sample](./samples/python/command-response/)  | [Sample](./samples/C/M5Stack/) |              |
+| Direct database connection — query telemetry         | [Sample](./samples/script/query-db/) | [Sample](./samples/python/query-db/)  |              | [Sample](./samples/java/src/main/java/com/oracle/iot/samples/SampleDataAccess.java) |
+| Streaming IoT Platform data (Database queues)        |                       | [Sample](./samples/python/queues/)  |              | [Sample](./samples/java/src/main/java/com/oracle/iot/samples/SampleDataStreaming.java) |
 
 ## End-to-End Samples
 

@@ -1,0 +1,23 @@
+# Maven project configuration
+.mvn/
+
+# Maven generated files
+target/
+
+# IntelliJ IDEA specific files
+.idea
+*.iml
+*.ipr
+*.iws
+
+# Eclipse specific files
+.classpath
+.project
+.factorypath
+.settings
+
+# Visual Studio Code specific files
+.vscode
+
+# MacOS generated files
+.DS_Store

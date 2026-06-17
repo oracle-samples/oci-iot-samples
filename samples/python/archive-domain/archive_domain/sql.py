@@ -81,7 +81,7 @@ def build_dataset_query(
     if dataset == "raw" and normalized_export_format == EXPORT_FORMAT_PARQUET:
         content_encoding_expr = _content_encoding_sql()
         content_representation_expr = _content_representation_sql()
-        blob_to_json_expr = _blob_to_json_expr(domain_short_name)
+        blob_to_json_expr = _blob_to_json_expr()
         sql_text = """
             select
                 id,
@@ -139,7 +139,7 @@ def build_dataset_query(
     elif dataset == "rejected" and normalized_export_format == EXPORT_FORMAT_PARQUET:
         content_encoding_expr = _content_encoding_sql()
         content_representation_expr = _content_representation_sql()
-        blob_to_json_expr = _blob_to_json_expr(domain_short_name)
+        blob_to_json_expr = _blob_to_json_expr()
         sql_text = """
             select
                 id,
@@ -184,12 +184,8 @@ def build_dataset_query(
     )
 
 
-def _blob_to_json_expr(domain_short_name: str | None) -> str:
-    if not domain_short_name:
-        raise ValueError(
-            "domain_short_name is required for parquet raw/rejected content conversion"
-        )
-    return f"{domain_short_name}__IOT.ords_utils.blobToJson(content, content_type)"
+def _blob_to_json_expr() -> str:
+    return "blob_to_json(content, content_type)"
 
 
 def build_dbms_cloud_export_statement(

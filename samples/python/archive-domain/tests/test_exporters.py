@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from pathlib import Path
 
 from archive_domain.exporters import (
     build_bulk_export_request,
@@ -35,7 +36,9 @@ def test_parquet_raw_and_rejected_queries_project_blob_content_as_json():
     assert "'parsed-json'" in raw_query.sql_text
     assert "'json-string'" in raw_query.sql_text
     assert "'base64-string'" in raw_query.sql_text
-    assert "sample__IOT.ords_utils.blobToJson(content, content_type) as content" in raw_query.sql_text
+    assert "blob_to_json(content, content_type) as content" in raw_query.sql_text
+    assert "ords_utils" not in raw_query.sql_text
+    assert "blobToJson" not in raw_query.sql_text
     assert "time_received >= :window_start" in raw_query.sql_text
     assert "time_received < :window_end" in raw_query.sql_text
 
@@ -43,7 +46,20 @@ def test_parquet_raw_and_rejected_queries_project_blob_content_as_json():
     assert "reason_message" in rejected_query.sql_text
     assert "content_encoding" in rejected_query.sql_text
     assert "content_representation" in rejected_query.sql_text
-    assert "sample__IOT.ords_utils.blobToJson(content, content_type) as content" in rejected_query.sql_text
+    assert "blob_to_json(content, content_type) as content" in rejected_query.sql_text
+    assert "ords_utils" not in rejected_query.sql_text
+    assert "blobToJson" not in rejected_query.sql_text
+
+
+def test_parquet_blob_content_conversion_does_not_require_domain_short_name():
+    window_start = datetime(2026, 4, 1, 0, 0, tzinfo=timezone.utc)
+    window_end = datetime(2026, 4, 2, 0, 0, tzinfo=timezone.utc)
+
+    raw_query = build_dataset_query(
+        "raw", window_start, window_end, export_format="parquet"
+    )
+
+    assert "blob_to_json(content, content_type) as content" in raw_query.sql_text
 
 
 def test_datapump_raw_and_rejected_queries_preserve_table_rows():
@@ -59,10 +75,12 @@ def test_datapump_raw_and_rejected_queries_preserve_table_rows():
 
     assert raw_query.sql_text.startswith("select *")
     assert "from raw_data" in raw_query.sql_text
+    assert "blob_to_json" not in raw_query.sql_text
     assert "blobToJson" not in raw_query.sql_text
 
     assert rejected_query.sql_text.startswith("select *")
     assert "from rejected_data" in rejected_query.sql_text
+    assert "blob_to_json" not in rejected_query.sql_text
     assert "blobToJson" not in rejected_query.sql_text
 
 
@@ -111,4 +129,18 @@ def test_bulk_export_request_inlines_window_literals_for_dbms_cloud():
     assert "to_timestamp_tz('2026-04-02T00:00:00.000000+00:00'" in binds["query_text"]
     assert "content_encoding" in binds["query_text"]
     assert "content_representation" in binds["query_text"]
-    assert "sample__IOT.ords_utils.blobToJson(content, content_type) as content" in binds["query_text"]
+    assert "blob_to_json(content, content_type) as content" in binds["query_text"]
+    assert "ords_utils" not in binds["query_text"]
+    assert "blobToJson" not in binds["query_text"]
+
+
+def test_sql_sample_uses_public_blob_to_json_api():
+    sample_root = Path(__file__).resolve().parents[3]
+    sql_package = (
+        sample_root / "sql" / "archive-domain" / "archive_domain_pkg.sql"
+    ).read_text()
+    sql_readme = (sample_root / "sql" / "archive-domain" / "README.md").read_text()
+
+    for content in (sql_package, sql_readme):
+        assert "blob_to_json(content, content_type)" in content
+        assert "ords_utils.blobToJson" not in content

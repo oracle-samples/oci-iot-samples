@@ -25,7 +25,7 @@ The archive format is chosen once per run from configuration with
 - The public default is `parquet`.
 - `parquet` applies to `raw`, `historized`, and `rejected`.
 - For `parquet`, `raw` and `rejected` project the `content` column through
-  `<DomainShortId>__IOT.ords_utils.blobToJson(content, content_type)`.
+  `blob_to_json(content, content_type)`.
 - Parquet `raw` and `rejected` exports also include:
   - `content_encoding`
   - `content_representation`

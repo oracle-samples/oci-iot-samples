@@ -9,7 +9,6 @@ DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 
 from __future__ import annotations
 
-import os
 from datetime import datetime, timezone
 from typing import Any
 
@@ -39,16 +38,6 @@ from .oci_utils import (
     resolve_region,
 )
 from .planner import build_archive_plan, parse_datasets
-
-_DATAPUMP_FEATURE_FLAG = "ARCHIVE_DOMAIN_DATAPUMP_ENABLED"
-
-
-def _is_datapump_enabled() -> bool:
-    return os.environ.get(_DATAPUMP_FEATURE_FLAG, "false").lower() in {
-        "1",
-        "true",
-        "yes",
-    }
 
 
 class NullRetentionLookup:
@@ -93,11 +82,6 @@ class ArchiveService:
             raise ValueError(f"unsupported export_format: {export_format}")
 
         if export_format == EXPORT_FORMAT_DATAPUMP:
-            if not _is_datapump_enabled():
-                raise ValueError(
-                    "datapump export format is not enabled in this environment"
-                )
-
             if len(selected_datasets) != 1:
                 raise ValueError(
                     "datapump export format requires selecting exactly one dataset"

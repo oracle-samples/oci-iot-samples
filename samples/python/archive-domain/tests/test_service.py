@@ -136,16 +136,16 @@ def test_distributed_config_template_defaults_to_parquet():
     assert "export_format: parquet" in template
 
 
-def test_run_rejects_datapump_when_feature_flag_disabled(monkeypatch):
-    monkeypatch.delenv("ARCHIVE_DOMAIN_DATAPUMP_ENABLED", raising=False)
+def test_run_allows_datapump():
     service = _build_plan_service(_build_config(export_format="datapump"))
 
-    with pytest.raises(ValueError, match="datapump export format is not enabled"):
-        service.run(datasets="raw", dry_run=True)
+    result = service.run(datasets="raw", dry_run=True)
+
+    assert result.export_format == "datapump"
+    assert result.dataset_results[0].export_format == "datapump"
 
 
-def test_plan_rejects_multiple_datasets_for_datapump(monkeypatch):
-    monkeypatch.setenv("ARCHIVE_DOMAIN_DATAPUMP_ENABLED", "true")
+def test_plan_rejects_multiple_datasets_for_datapump():
     service = _build_plan_service(_build_config(export_format="datapump"))
 
     with pytest.raises(
@@ -162,8 +162,7 @@ def test_plan_rejects_empty_normalized_dataset_selection():
         service.plan(datasets=" , , ")
 
 
-def test_plan_allows_multiple_datasets_for_parquet(monkeypatch):
-    monkeypatch.delenv("ARCHIVE_DOMAIN_DATAPUMP_ENABLED", raising=False)
+def test_plan_allows_multiple_datasets_for_parquet():
     service = ArchiveService(
         config=_build_config(export_format="parquet"),
         retention_lookup=_StaticRetentionLookup(),

@@ -47,7 +47,6 @@ end;
 create or replace package body archive_domain_pkg as
   type t_dataset_list is table of varchar2(30) index by pls_integer;
   type t_seen_map is table of pls_integer index by varchar2(30);
-  c_enable_datapump constant boolean := false;
 
   function format_timestamp(
     p_value in timestamp with time zone
@@ -403,10 +402,6 @@ create or replace package body archive_domain_pkg as
   begin
     if p_export_format != 'datapump' then
       return;
-    end if;
-
-    if not c_enable_datapump then
-      raise_application_error(-20025, 'datapump export format is not enabled for this platform');
     end if;
 
     if p_datasets.count != 1 then

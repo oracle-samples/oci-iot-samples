@@ -144,3 +144,14 @@ def test_sql_sample_uses_public_blob_to_json_api():
     for content in (sql_package, sql_readme):
         assert "blob_to_json(content, content_type)" in content
         assert "ords_utils.blobToJson" not in content
+
+
+def test_sql_sample_does_not_gate_datapump_availability():
+    sample_root = Path(__file__).resolve().parents[3]
+    sql_package = (
+        sample_root / "sql" / "archive-domain" / "archive_domain_pkg.sql"
+    ).read_text()
+
+    assert "c_enable_datapump" not in sql_package
+    assert "datapump export format is not enabled for this platform" not in sql_package
+    assert "datapump export format requires exactly one dataset per run" in sql_package

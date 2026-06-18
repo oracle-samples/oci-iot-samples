@@ -39,7 +39,7 @@ The archive format is chosen once per run from configuration with
 
 - `datapump` is also a supported run-level export format.
 - `datapump` applies to `raw`, `historized`, and `rejected`.
-- Use `datapump` when you want fidelity-preserving database exports rather than
+- Use `datapump` when you want native Oracle database exports rather than
   Parquet representations.
 
 ### Datasets, Retention, And Archive Windows
@@ -52,8 +52,8 @@ Both implementations operate on the same datasets:
 
 The IoT Platform purges data according to dataset-specific retention periods, configured by the IoT domain administrator.
 Both implementations use those retention values to compute the purge boundary
-for each dataset (`now - retention_days`) and then derive the newly at-risk
-archive window from:
+for each dataset (`now - retention_days`) and then derive the archive window by
+determining which data is at risk of being purged:
 
 - explicit `start` / `end` overrides when provided
 - the last successful checkpoint in Object Storage

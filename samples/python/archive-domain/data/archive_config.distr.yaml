@@ -1,0 +1,28 @@
+# Archive-domain sample configuration.
+
+export_format: parquet
+
+iot:
+  domain_id: <IoT Domain OCID>
+  retention_days:
+    raw: null
+    historized: null
+    rejected: null
+  bootstrap_lookback_days: 1
+
+database:
+  connect_string: "tcps:adb.<region>.oraclecloud.com:1521/<redacted>"
+  token_scope: "urn:oracle:db::id::<Compartment OCID>"
+  iot_domain_short_name: <Domain Short Name>
+  auth_type: InstancePrincipal
+  profile: DEFAULT
+  thick_mode: false
+  lib_dir: null
+  dbms_cloud_credential_name: DOMAIN_ARCHIVE_TEST
+
+object_storage:
+  namespace: null
+  bucket_name: <Bucket Name>
+  prefix: iot-archive
+  manifest_prefix: _manifests
+  checkpoint_object: _state/checkpoint.json

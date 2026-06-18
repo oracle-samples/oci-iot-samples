@@ -12,7 +12,7 @@ select = ["C4", "D", "E", "F", "I", "N", "W"]
 ignore = ["D100", "D103", "D212", "E203", "E402", "E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["manage_dt"]
+known-first-party = ["archive_domain", "manage_dt"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

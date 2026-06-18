@@ -61,6 +61,7 @@ as well as the messages received.
 | Sending observed time in device payload              | [Sample](./samples/script/time-observed/) |              | [Sample](./samples/C/M5Stack/) |              |
 | Raw command-response scenario                        |                       | [Sample](./samples/python/command-response/)  | [Sample](./samples/C/M5Stack/) |              |
 | Direct database connection — query telemetry         | [Sample](./samples/script/query-db/) | [Sample](./samples/python/query-db/)  |              | [Sample](./samples/java/src/main/java/com/oracle/iot/samples/SampleDataAccess.java) |
+| Archive IoT Domain data to Object Storage            | [Sample](./samples/sql/archive-domain/) | [Sample](./samples/python/archive-domain/) |              |              |
 | Streaming IoT Platform data (Database queues)        |                       | [Sample](./samples/python/queues/)  |              | [Sample](./samples/java/src/main/java/com/oracle/iot/samples/SampleDataStreaming.java) |
 
 ## End-to-End Samples
@@ -77,6 +78,10 @@ as well as the messages received.
   a device can request an upload over MQTT, have a backend agent consume IoT
   Platform database queue messages, create short-lived Object Storage upload
   URLs, send responses through raw commands, and run optional post-processing.
+- The Archive IoT Domain data samples show how to plan and archive retained IoT
+  Platform data to Object Storage using either
+  [`SQL`](./samples/sql/archive-domain/) or
+  [`Python`](./samples/python/archive-domain/).
 
 ## Documentation
 

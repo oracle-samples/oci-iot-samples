@@ -31,6 +31,19 @@ git commit --signoff
 Only pull requests from committers that can be verified as having signed the OCA
 can be accepted.
 
+## Local checks
+
+Run the fast local checks before submitting a pull request:
+
+```console
+pre-commit run --all-files
+```
+
+These hooks check repository policy, file hygiene, JSON and YAML syntax, and Python
+formatting and linting. They are intentionally a subset of CI. The authoritative
+Super-Linter and Trivy checks are defined in
+[the repository checks workflow](./.github/workflows/pre-commit.yaml).
+
 ## Pull request process
 
 1. Ensure there is an issue created to track and discuss the fix or enhancement

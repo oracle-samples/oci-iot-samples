@@ -11,13 +11,6 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: check-added-large-files
-        # PL/SQL Package bodies can be large...
-        exclude: .\.pkb$
-        args: ["--maxkb=64"]
-      - id: check-case-conflict
-      - id: check-executables-have-shebangs
-      - id: check-illegal-windows-names
       - id: check-json
       - id: check-yaml
       - id: end-of-file-fixer
@@ -42,34 +35,10 @@ repos:
     hooks:
       - id: ruff-check
 
-  - repo: https://github.com/jumanjihouse/pre-commit-hooks
-    rev: 3.0.0
-    hooks:
-      - id: shellcheck
-        exclude: .\.zsh$
-
-  - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.18.1
-    hooks:
-      - id: markdownlint-cli2
-
-  - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.101.0
-    hooks:
-      - id: terraform_fmt
-        files: ^samples/terraform/
-      - id: terraform_tflint
-        args:
-          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
-        files: ^samples/terraform/
-      - id: terraform_trivy
-        files: ^samples/terraform/
-
   - repo: local
     hooks:
-      - id: forbid-binary
-        name: Forbid binaries
-        description: Forbid binary files from being committed
-        entry: pre_commit_hooks/forbid_binary.sh
+      - id: repository-policy
+        name: Check repository policy
+        entry: pre_commit_hooks/repository_policy.py
         language: script
-        types: ["binary"]
+        pass_filenames: false

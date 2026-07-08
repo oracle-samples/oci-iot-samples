@@ -17,7 +17,8 @@ It uses a configurable base endpoint and derives:
 - commands: `<iot_base_endpoint>/cmd/<key>`
 - responses: `<iot_base_endpoint>/rsp/<key>`
 
-The script will terminate when it receives a _shutdown_ command or a keyboard interrupt (Control-C).
+The script will terminate when it receives a _shutdown_ command or a keyboard
+interrupt (Control-C).
 
 Notes:
 

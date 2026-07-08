@@ -141,11 +141,11 @@ oci identity-domains dynamic-resource-group create \
     --schemas '["urn:ietf:params:scim:schemas:oracle:idcs:DynamicResourceGroup"]'
 ```
 
-(See [IoT from scratch](./README.md#tenancy-and-identity-domain-considerations) for how to
-retrieve the Identity Endpoint.)
+(See [IoT from scratch](./README.md#tenancy-and-identity-domain-considerations) for
+how to retrieve the Identity Endpoint.)
 
-This Dynamic Group will contain only this Compute Instance; you can potentially address a
-broader scope with, e.g., `instance.compartment.id = '<compartment-ocid>'`.
+This Dynamic Group will contain only this Compute Instance; you can potentially
+address a broader scope with, e.g., `instance.compartment.id = '<compartment-ocid>'`.
 
 No additional policy is required to retrieve the token, but you might want to give access
 to the IoT Platform. In that case, create the following policy:

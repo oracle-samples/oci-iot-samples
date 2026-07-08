@@ -1,6 +1,7 @@
 # OCI IoT Platform Device Workflow Demo Python script
 
-Sample Python application to create, query, and delete devices to illustrate the use of the
+Sample Python application to create, query, and delete devices to illustrate the use
+of the
 [OCI Python SDK](https://docs.oracle.com/en-us/iaas/tools/python/latest/), in particular
 the bindings for the [OCI IoT Platform](https://docs.oracle.com/en-us/iaas/tools/python/latest/api/iot.html)
 as well as the [ORDS API](https://docs.oracle.com/iaas/tools/internet-of-things/data-api/index.html)
@@ -19,8 +20,8 @@ your OCI tenancy:
 
 - an OCI IoT Domain Group and Domain
 - OCI Vault secrets and/or OCI Certificates for your device credentials
-- a Confidential Application to issue tokens for querying telemetry via ORDS. This step is
-  only required for the `query` command of `manage-dt`.
+- a Confidential Application to issue tokens for querying telemetry via ORDS. This
+  step is only required for the `query` command of `manage-dt`.
 
 ## Installation
 

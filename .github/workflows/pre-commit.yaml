@@ -1,13 +1,13 @@
 #
-# Github workflow for pre-commit
+# GitHub workflow for repository policy and lint checks
 #
-# Copyright (c) 2025 Oracle and/or its affiliates.
+# Copyright (c) 2025, 2026 Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at
 # https://oss.oracle.com/licenses/upl.
 #
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
-name: Pre-commit checks
+name: Repository checks
 
 on:
   pull_request:
@@ -15,118 +15,62 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
-  pre-commit:
+  repository-checks:
     runs-on: ubuntu-24.04
-    env:
-      PYTHON_VERSION: '3.12'
-      NODE_VERSION: '24'
-      PRE_COMMIT_VERSION: '4.3.0'
-      PRE_COMMIT_HOME: ${{ github.workspace }}/.cache/pre-commit
-      LOCAL_BIN_DIR: ${{ github.workspace }}/.local/bin
-      SHELLCHECK_VERSION: 'v0.11.0'
-      TERRAFORM_VERSION: '1.13.3'
-      TFLINT_VERSION: 'v0.59.1'
-      TRIVY_VERSION: '0.69.3'
-      ARCH: amd64
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
-          # Fetch all history to ensure pre-commit can find merge-base
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: .github/workflows/pre-commit.yaml
-
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Add cache directories to PATH
-        shell: bash
+      - name: Check repository policy
+        env:
+          BASE_REVISION: >-
+            ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          mkdir --parents "${LOCAL_BIN_DIR}"
-          mkdir --parents "${PRE_COMMIT_HOME}"
-          echo "${LOCAL_BIN_DIR}" >> "${GITHUB_PATH}"
-
-      - name: Cache pre-commit environments
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.PRE_COMMIT_HOME }}
-          key: >-
-            ${{ runner.os }}-pre-commit-${{ env.PYTHON_VERSION }}-${{
-            env.PRE_COMMIT_VERSION }}-${{ hashFiles('.pre-commit-config.yaml') }}
-
-      - name: Cache downloaded CLI binaries
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.LOCAL_BIN_DIR }}
-          key: >-
-            ${{ runner.os }}-local-bin-${{ env.SHELLCHECK_VERSION }}-${{
-            env.TERRAFORM_VERSION }}-${{ env.TFLINT_VERSION }}-${{
-            env.TRIVY_VERSION }}
-
-      - name: Install ShellCheck
-        shell: bash
-        run: |
-          if command -v shellcheck >/dev/null 2>&1; then
-            echo "Using cached ShellCheck"
+          if [[ -n "${BASE_REVISION}" && ! "${BASE_REVISION}" =~ ^0+$ ]]; then
+            python3 pre_commit_hooks/repository_policy.py \
+              --added-since "${BASE_REVISION}"
           else
-            echo "Installing ShellCheck..."
-            curl --silent --location \
-                "https://github.com/koalaman/shellcheck/releases/download/${SHELLCHECK_VERSION}/shellcheck-${SHELLCHECK_VERSION}.linux.x86_64.tar.xz" |
-                tar --extract --xz --directory="${LOCAL_BIN_DIR}" \
-                --strip-components=1 "shellcheck-${SHELLCHECK_VERSION}/shellcheck"
+            python3 pre_commit_hooks/repository_policy.py
           fi
-          shellcheck --version
 
-      - name: Set up Terraform
-        run: |
-          if command -v terraform >/dev/null 2>&1; then
-            echo "Using cached Terraform"
-          else
-            echo "Installing Terraform..."
-            OS=$(uname | tr '[:upper:]' '[:lower:]')
-            curl --silent --location --remote-name \
-                https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_${OS}_${ARCH}.zip
-            unzip terraform_${TERRAFORM_VERSION}_${OS}_${ARCH}.zip terraform
-            mv terraform "${LOCAL_BIN_DIR}"
-          fi
-          terraform version
+      - name: Run Super-Linter
+        uses: github/super-linter/slim@ce838ab356d25fc8e83a16fa6d1fc6f583e14e87 # slim-v8.6.0
+        env:
+          ENABLE_GITHUB_PULL_REQUEST_SUMMARY_COMMENT: false
+          EXPORT_GITHUB_TOKEN: false
+          LINTER_RULES_PATH: .
+          MULTI_STATUS: false
+          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_BASH: true
+          VALIDATE_EDITORCONFIG: true
+          VALIDATE_JSON: true
+          VALIDATE_MARKDOWN: true
+          VALIDATE_PYTHON_BLACK: true
+          VALIDATE_PYTHON_RUFF: true
+          VALIDATE_TERRAFORM_FMT: true
+          VALIDATE_TERRAFORM_TFLINT: true
+          VALIDATE_YAML: true
+          EDITORCONFIG_FILE_NAME: .editorconfig-checker.json
+          MARKDOWN_CONFIG_FILE: .markdownlint.yml
+          PYTHON_BLACK_CONFIG_FILE: pyproject.toml
+          PYTHON_RUFF_CONFIG_FILE: pyproject.toml
+          TERRAFORM_TFLINT_CONFIG_FILE: .tflint.hcl
 
-      - name: Install pre-commit-terraform dependencies
-        shell: bash
-        run: |
-          if command -v tflint >/dev/null 2>&1; then
-            echo "Using cached tflint"
-          else
-            echo "Installing tflint..."
-            curl --silent --location \
-                https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/tflint_linux_amd64.zip > tflint.zip &&
-                unzip tflint.zip tflint -d "${LOCAL_BIN_DIR}" && rm tflint.zip
-          fi
-          tflint --version
-
-          if command -v trivy >/dev/null 2>&1; then
-            echo "Using cached Trivy"
-          else
-            echo "Installing trivy..."
-            curl --silent --location \
-                https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz |
-                tar -xz --directory="${LOCAL_BIN_DIR}" trivy
-          fi
-          trivy --version
-
-      - name: Install pre-commit
-        run: |
-          pip install pre-commit==${PRE_COMMIT_VERSION}
-          pre-commit --version
-
-      - name: Run pre-commit hooks
-        run: pre-commit run --all-files
+      - name: Scan Terraform configuration with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          cache: false
+          exit-code: '1'
+          format: table
+          hide-progress: true
+          scan-ref: samples/terraform
+          scan-type: config
+          version: v0.69.3

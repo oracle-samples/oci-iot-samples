@@ -11,3 +11,6 @@ MD013:
   line_length: 88
   tables: false
   code_blocks: false
+
+# Keep the table formatting accepted by the pre-commit markdownlint version.
+MD060: false

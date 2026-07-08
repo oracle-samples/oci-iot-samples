@@ -65,8 +65,8 @@ Additionally:
 
 #### OCI IoT Platform policies
 
-The following policy statements allow the OCI IoT Platform to access your vault secrets and
-certificates. They must be
+The following policy statements allow the OCI IoT Platform to access your vault
+secrets and certificates. They must be
 [created](https://docs.oracle.com/en-us/iaas/tools/oci-cli/3.65.0/oci_cli_docs/cmdref/iam/policy/create.html)
 in the root compartment:
 

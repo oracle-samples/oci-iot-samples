@@ -15,7 +15,7 @@ import math
 import re
 import subprocess
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
+from pathlib import PurePosixPath
 
 MAX_FILE_SIZE_KIB = 64
 WINDOWS_ILLEGAL_NAME = re.compile(
@@ -25,6 +25,12 @@ WINDOWS_ILLEGAL_NAME = re.compile(
 TEXT_BYTES = frozenset(
     (7, 8, 9, 10, 11, 12, 13, 27),
 ) | frozenset(range(0x20, 0x100))
+LFS_POINTER = re.compile(
+    rb"\Aversion https://git-lfs.github.com/spec/v1\n"
+    rb"(?:ext-[^\s]+ [^\n]+\n)*"
+    rb"oid sha256:[0-9a-f]{64}\n"
+    rb"size (?:0|[1-9][0-9]*)\n\Z",
+)
 
 
 @dataclass(frozen=True)
@@ -32,6 +38,7 @@ class TrackedFile:
     """A path and mode reported by the Git index."""
 
     mode: str
+    object_id: str
     path: str
 
     @property
@@ -59,9 +66,13 @@ def tracked_files() -> list[TrackedFile]:
         metadata, separator, encoded_path = record.partition(b"\t")
         if not separator:
             continue
-        mode = metadata.split(maxsplit=1)[0].decode("ascii")
+        mode, object_id, _ = metadata.decode("ascii").split()
         entries.append(
-            TrackedFile(mode, encoded_path.decode("utf-8", errors="surrogateescape")),
+            TrackedFile(
+                mode,
+                object_id,
+                encoded_path.decode("utf-8", errors="surrogateescape"),
+            ),
         )
     return entries
 
@@ -71,7 +82,7 @@ def lfs_paths(paths: list[str]) -> set[str]:
     if not paths:
         return set()
     result = subprocess.run(
-        ("git", "check-attr", "filter", "-z", "--stdin"),
+        ("git", "check-attr", "--cached", "filter", "-z", "--stdin"),
         check=True,
         input="\0".join(paths).encode("utf-8", errors="surrogateescape"),
         stdout=subprocess.PIPE,
@@ -123,16 +134,33 @@ def case_conflict_violations(paths: list[str]) -> list[str]:
     ]
 
 
-def is_binary(path: Path) -> bool:
+def staged_blob(tracked_file: TrackedFile) -> bytes:
+    """Return the content stored in the Git index for a tracked file."""
+    result = subprocess.run(
+        ("git", "cat-file", "blob", tracked_file.object_id),
+        check=True,
+        stdout=subprocess.PIPE,
+    )
+    return result.stdout
+
+
+def is_valid_lfs_content(content: bytes) -> bool:
+    """Return whether staged content is empty or a complete Git LFS v1 pointer."""
+    return content == b"" or (
+        len(content) < 1024
+        and not is_binary(content)
+        and LFS_POINTER.fullmatch(content) is not None
+    )
+
+
+def is_binary(content: bytes) -> bool:
     """Use the same first-KiB text heuristic as pre-commit's identify library."""
-    with path.open("rb") as stream:
-        return any(byte not in TEXT_BYTES for byte in stream.read(1024))
+    return any(byte not in TEXT_BYTES for byte in content[:1024])
 
 
-def has_shebang(path: Path) -> bool:
+def has_shebang(content: bytes) -> bool:
     """Return whether a file starts with the shebang marker."""
-    with path.open("rb") as stream:
-        return stream.read(2) == b"#!"
+    return content.startswith(b"#!")
 
 
 def content_violations(
@@ -145,26 +173,30 @@ def content_violations(
     for tracked_file in files:
         if not tracked_file.is_regular:
             continue
-        path = Path(tracked_file.path)
-        if not path.is_file():
-            continue
-        is_lfs = tracked_file.path in lfs_tracked_paths
-        size_kib = math.ceil(path.stat().st_size / 1024)
+        content = staged_blob(tracked_file)
+        has_lfs_attribute = tracked_file.path in lfs_tracked_paths
+        is_lfs = has_lfs_attribute and is_valid_lfs_content(content)
+        if has_lfs_attribute and not is_lfs:
+            violations.append(
+                f"{tracked_file.path} is marked for LFS but its staged blob is not "
+                "an LFS pointer",
+            )
+        size_kib = math.ceil(len(content) / 1024)
         if (
             not is_lfs
             and tracked_file.path in newly_added_paths
-            and path.suffix != ".pkb"
+            and PurePosixPath(tracked_file.path).suffix != ".pkb"
             and size_kib > MAX_FILE_SIZE_KIB
         ):
             violations.append(
                 f"{tracked_file.path} ({size_kib} KB) exceeds "
                 f"{MAX_FILE_SIZE_KIB} KB.",
             )
-        if tracked_file.is_executable and not has_shebang(path):
+        if tracked_file.is_executable and not has_shebang(content):
             violations.append(
                 f"{tracked_file.path}: marked executable but has no valid shebang",
             )
-        if not is_lfs and is_binary(path):
+        if not is_lfs and is_binary(content):
             violations.append(
                 f"{tracked_file.path} appears to be a non-LFS binary file",
             )

@@ -20,6 +20,12 @@ from pathlib import Path
 CHECKER = (
     Path(__file__).resolve().parents[1] / "pre_commit_hooks" / "repository_policy.py"
 )
+LFS_POINTER = (
+    b"version https://git-lfs.github.com/spec/v1\n"
+    + b"oid sha256:"
+    + (b"0" * 64)
+    + b"\nsize 65537\n"
+)
 
 
 class _TemporaryRepository:
@@ -135,9 +141,67 @@ class _RepositoryPolicyTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_accepts_large_lfs_file(self) -> None:
-        self.repository.add_file("image.bin", b"\x00" * (64 * 1024 + 1))
         self.repository.add_file(
             ".gitattributes",
+            b"*.bin filter=lfs diff=lfs merge=lfs -text\n",
+        )
+        self.repository.add_file("image.bin", LFS_POINTER)
+
+        result = self.repository.run_checker()
+
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_accepts_empty_lfs_file(self) -> None:
+        self.repository.add_file(
+            ".gitattributes",
+            b"*.bin filter=lfs diff=lfs merge=lfs -text\n",
+        )
+        self.repository.add_file("empty.bin", b"")
+
+        result = self.repository.run_checker()
+
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_rejects_raw_blob_with_lfs_attribute(self) -> None:
+        self.repository.add_file("bad_binary.bin", b"\x00" * (64 * 1024 + 1))
+        self.repository.add_file(
+            ".gitattributes",
+            b"*.bin filter=lfs diff=lfs merge=lfs -text\n",
+        )
+
+        result = self.repository.run_checker()
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn(
+            "bad_binary.bin is marked for LFS but its staged blob is not an LFS "
+            "pointer",
+            result.stdout,
+        )
+        self.assertIn("bad_binary.bin (65 KB) exceeds 64 KB", result.stdout)
+        self.assertIn(
+            "bad_binary.bin appears to be a non-LFS binary file",
+            result.stdout,
+        )
+
+    def test_rejects_oversized_lfs_pointer(self) -> None:
+        oversized_pointer = LFS_POINTER.replace(
+            b"oid sha256:",
+            b"ext-1-example " + (b"x" * 1024) + b"\noid sha256:",
+        )
+        self.repository.add_file("oversized.bin", oversized_pointer)
+        self.repository.add_file(
+            ".gitattributes",
+            b"*.bin filter=lfs diff=lfs merge=lfs -text\n",
+        )
+
+        self.assert_policy_failure(
+            "oversized.bin is marked for LFS but its staged blob is not an LFS "
+            "pointer",
+        )
+
+    def test_ignores_unstaged_lfs_attribute(self) -> None:
+        self.repository.add_file("payload.bin", b"ordinary text\n")
+        (self.repository.path / ".gitattributes").write_bytes(
             b"*.bin filter=lfs diff=lfs merge=lfs -text\n",
         )
 
